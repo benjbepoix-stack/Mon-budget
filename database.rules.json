@@ -1,0 +1,32 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "budget": {
+      ".read": true,
+      ".write": true,
+      "theme": { ".validate": "newData.val() === 'light' || newData.val() === 'dark'" },
+      "categories": {
+        "$id": {
+          ".validate": "newData.hasChildren(['id', 'name', 'kind']) && newData.child('name').isString() && newData.child('name').val().length <= 40 && (newData.child('kind').val() === 'expense' || newData.child('kind').val() === 'income')"
+        }
+      },
+      "transactions": {
+        "$id": {
+          ".validate": "newData.hasChildren(['id', 'type', 'amount', 'date']) && newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() <= 100000000 && newData.child('date').isString() && newData.child('date').val().matches(/^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) && (newData.child('type').val() === 'expense' || newData.child('type').val() === 'income' || newData.child('type').val() === 'saving')"
+        }
+      },
+      "recurring": {
+        "$id": {
+          ".validate": "newData.hasChildren(['id', 'label', 'amount', 'start']) && newData.child('amount').isNumber() && newData.child('amount').val() > 0"
+        }
+      },
+      "goals": {
+        "$id": {
+          ".validate": "newData.hasChildren(['id', 'name', 'target']) && newData.child('target').isNumber() && newData.child('target').val() > 0"
+        }
+      },
+      "$other": { ".validate": false }
+    }
+  }
+}

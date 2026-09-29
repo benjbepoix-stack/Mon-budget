@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark" class="is-pin-locked">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Suivi de budget : budgets par catégorie, charges fixes, objectifs d'épargne.">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="color-scheme" content="dark light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mon budget">
+  <meta name="format-detection" content="telephone=no">
+  <title>Mon budget</title>
+
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <script>
+    try { if (localStorage.getItem('budget_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+  </script>
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/views/budget.css">
+
+  <script type="module" src="js/main.js"></script>
+</head>
+
+<body>
+  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <!-- ================= VERROU PIN ================= -->
+  <div class="pin" id="pinScreen" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+    <div class="pin__inner">
+      <div class="pin__logo" data-icon="lock" data-size="26"></div>
+      <h1 class="pin__title" id="pinTitle">Entrez votre code</h1>
+      <div class="pin__dots" id="pinDots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <p class="pin__message" id="pinMessage" role="alert"></p>
+      <div class="pin__pad" id="pinPad"></div>
+      <button type="button" class="link-btn link-btn--center" id="pinForgot">Code oublié ?</button>
+      <button type="button" class="link-btn link-btn--center" id="pinSkip" hidden>Continuer sans code</button>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__titles">
+        <div class="topbar__kicker" id="headerKicker">Mon budget</div>
+        <h1 class="topbar__title" id="headerTitle">Ce mois-ci</h1>
+      </div>
+      <div class="topbar__actions">
+        <span class="sync-pill" id="syncStatus" data-status="connecting" role="status"><span class="spinner spinner--xs"></span><span>Connexion…</span></span>
+        <button type="button" class="icon-btn icon-btn--glass" id="settingsBtn" aria-label="Réglages"><span data-icon="settings"></span></button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabbar" aria-label="Navigation principale">
+    <button type="button" class="tabbar__item is-active" data-view="monthView" aria-current="page"><span data-icon="wallet"></span><span>Mois</span></button>
+    <button type="button" class="tabbar__item" data-view="txView"><span data-icon="list"></span><span>Opérations</span></button>
+    <button type="button" class="tabbar__item" data-view="goalsView"><span data-icon="piggy"></span><span>Épargne</span></button>
+    <button type="button" class="tabbar__item" data-view="analysisView"><span data-icon="trend"></span><span>Analyse</span></button>
+  </nav>
+
+  <button type="button" class="fab" id="fab" aria-label="Nouvelle opération"><span data-icon="plus" data-size="26"></span></button>
+
+  <main class="app" id="main" tabindex="-1">
+
+    <!-- ================= MOIS ================= -->
+    <section id="monthView" class="view">
+      <div class="month-nav" data-month-nav>
+        <button type="button" class="icon-btn icon-btn--glass" data-month-step="-1" aria-label="Mois précédent"><span data-icon="chevronLeft"></span></button>
+        <div class="month-nav__label"><strong data-month-label></strong><button type="button" class="link-btn" data-month-reset hidden>Revenir au mois en cours</button></div>
+        <button type="button" class="icon-btn icon-btn--glass" data-month-step="1" aria-label="Mois suivant"><span data-icon="chevronRight"></span></button>
+      </div>
+
+      <section class="card card--gradient balance" id="monthHero" aria-live="polite"></section>
+
+      <section class="section">
+        <header class="section__head">
+          <h2 class="section__title"><span class="section__icon section__icon--mint" data-icon="target" data-size="18"></span>Budgets</h2>
+          <button type="button" class="link-btn" data-open-settings="categories">Modifier</button>
+        </header>
+        <div class="card card--list" id="budgetList"></div>
+      </section>
+
+      <section class="section card">
+        <header class="card__head"><div><h2 class="card__title">Répartition des dépenses</h2><p class="card__sub" id="donutSub"></p></div></header>
+        <div class="donut-chart donut-chart--stack">
+          <div class="donut" id="monthDonut"><div class="donut__center"><strong id="monthDonutTotal">0</strong><span>dépensés</span></div></div>
+          <div class="legend" id="monthLegend"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <header class="section__head">
+          <h2 class="section__title"><span class="section__icon section__icon--blue" data-icon="list" data-size="18"></span>Dernières opérations</h2>
+          <button type="button" class="link-btn" data-view-link="txView">Tout voir</button>
+        </header>
+        <div class="card card--list" id="recentList"></div>
+      </section>
+    </section>
+
+    <!-- ================= OPÉRATIONS ================= -->
+    <section id="txView" class="view" hidden>
+      <div class="month-nav" data-month-nav>
+        <button type="button" class="icon-btn icon-btn--glass" data-month-step="-1" aria-label="Mois précédent"><span data-icon="chevronLeft"></span></button>
+        <div class="month-nav__label"><strong data-month-label></strong><button type="button" class="link-btn" data-month-reset hidden>Revenir au mois en cours</button></div>
+        <button type="button" class="icon-btn icon-btn--glass" data-month-step="1" aria-label="Mois suivant"><span data-icon="chevronRight"></span></button>
+      </div>
+      <div class="segmented" role="tablist" id="txFilter">
+        <button type="button" role="tab" data-filter="all" aria-selected="true">Tout</button>
+        <button type="button" role="tab" data-filter="expense" aria-selected="false">Dépenses</button>
+        <button type="button" role="tab" data-filter="income" aria-selected="false">Revenus</button>
+        <button type="button" role="tab" data-filter="saving" aria-selected="false">Épargne</button>
+      </div>
+      <div class="tx-summary" id="txSummary"></div>
+      <div id="txList"></div>
+    </section>
+
+    <!-- ================= ÉPARGNE ================= -->
+    <section id="goalsView" class="view" hidden>
+      <section class="card card--gradient savings-hero" id="savingsHero"></section>
+      <section class="section">
+        <header class="section__head">
+          <h2 class="section__title"><span class="section__icon section__icon--violet" data-icon="piggy" data-size="18"></span>Mes objectifs</h2>
+          <button type="button" class="btn btn--add btn--icon" data-goal-add aria-label="Nouvel objectif"><span data-icon="plus" data-size="20"></span></button>
+        </header>
+        <div class="stack" id="goalList"></div>
+      </section>
+    </section>
+
+    <!-- ================= ANALYSE ================= -->
+    <section id="analysisView" class="view" hidden>
+      <section class="card">
+        <header class="card__head"><div><h2 class="card__title">12 derniers mois</h2><p class="card__sub">Touchez un mois pour le détail</p></div></header>
+        <div id="trendChart"></div>
+      </section>
+      <div class="stats-grid stats-grid--4 section" id="trendStats"></div>
+      <section class="section card">
+        <header class="card__head"><div><h2 class="card__title">Top dépenses</h2><p class="card__sub">Cumul sur 12 mois par catégorie</p></div></header>
+        <div id="topCategories"></div>
+      </section>
+      <section class="section card">
+        <header class="card__head">
+          <div><h2 class="card__title">Charges fixes</h2><p class="card__sub">Opérations récurrentes actives</p></div>
+          <button type="button" class="link-btn" data-open-settings="recurring">Gérer</button>
+        </header>
+        <div id="recurringOverview"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- ================= FEUILLES ================= -->
+
+  <!-- Opération (saisie rapide / édition) -->
+  <div class="sheet-backdrop" id="txSheet" hidden>
+    <div class="sheet sheet--tall" role="dialog" aria-modal="true" aria-labelledby="txTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="txTitle">Nouvelle opération</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="txForm" novalidate>
+        <input type="hidden" name="editId">
+        <div class="segmented segmented--types" role="radiogroup" aria-label="Type d'opération">
+          <label><input type="radio" name="type" value="expense" checked><span>Dépense</span></label>
+          <label><input type="radio" name="type" value="income"><span>Revenu</span></label>
+          <label><input type="radio" name="type" value="saving"><span>Épargne</span></label>
+        </div>
+        <div class="field amount-field">
+          <label class="field__label" for="txAmount">Montant</label>
+          <div class="amount-input"><input class="input" id="txAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" enterkeyhint="done"><span>€</span></div>
+        </div>
+        <div class="field" data-for="category">
+          <span class="field__label" id="txCatLabel">Catégorie</span>
+          <div class="chip-grid" id="txCategories" role="radiogroup" aria-labelledby="txCatLabel"></div>
+          <input type="hidden" name="categoryId">
+        </div>
+        <div class="field" data-for="goal" hidden>
+          <span class="field__label" id="txGoalLabel">Objectif</span>
+          <div class="chip-grid" id="txGoals" role="radiogroup" aria-labelledby="txGoalLabel"></div>
+          <input type="hidden" name="goalId">
+        </div>
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="txDate">Date</label><input class="input" id="txDate" type="date" name="date" required></div>
+          <div class="field"><label class="field__label" for="txNote">Note <span class="field__opt">(facultatif)</span></label><input class="input" id="txNote" name="note" maxlength="200" placeholder="Ex. Carrefour" autocomplete="off"></div>
+        </div>
+        <label class="toggle" data-for="repeat"><input type="checkbox" name="repeat"><span class="toggle__track"></span><span>Répéter chaque mois <small>(charge fixe ou revenu régulier)</small></span></label>
+        <div class="form-actions">
+          <button type="button" class="btn btn--ghost" data-close>Annuler</button>
+          <button type="submit" class="btn btn--primary">Enregistrer</button>
+        </div>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="txDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer l’opération</span></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Objectif d'épargne -->
+  <div class="sheet-backdrop" id="goalSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="goalTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="goalTitle">Nouvel objectif</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="goalForm" novalidate>
+        <input type="hidden" name="editId"><input type="hidden" name="icon">
+        <div class="field"><span class="field__label">Icône</span><div class="emoji-grid" data-emoji-for="goalForm"></div></div>
+        <div class="field"><label class="field__label" for="goalName">Nom</label><input class="input" id="goalName" name="name" maxlength="40" placeholder="Ex. Vacances d’été" autocomplete="off"></div>
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="goalTarget">Montant visé · €</label><input class="input" id="goalTarget" name="target" inputmode="decimal" placeholder="1 500" autocomplete="off"></div>
+          <div class="field"><label class="field__label" for="goalDeadline">Échéance <span class="field__opt">(facult.)</span></label><input class="input" id="goalDeadline" type="date" name="deadline"></div>
+        </div>
+        <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="goalDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer l’objectif</span></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Réglages -->
+  <div class="sheet-backdrop" id="settingsSheet" hidden>
+    <div class="sheet sheet--tall" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="settingsTitle">Réglages</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <div class="sheet__scroll settings">
+        <section class="settings__section" id="settingsCategories">
+          <header class="settings__head"><h3>Catégories &amp; budgets mensuels</h3><button type="button" class="btn btn--add btn--sm" data-cat-add><span data-icon="plus" data-size="16"></span><span>Ajouter</span></button></header>
+          <div class="segmented" role="tablist" id="catKind">
+            <button type="button" role="tab" data-kind="expense" aria-selected="true">Dépenses</button>
+            <button type="button" role="tab" data-kind="income" aria-selected="false">Revenus</button>
+          </div>
+          <div class="card card--list" id="catList"></div>
+        </section>
+        <section class="settings__section" id="settingsRecurring">
+          <header class="settings__head"><h3>Charges &amp; revenus récurrents</h3><button type="button" class="btn btn--add btn--sm" data-rec-add><span data-icon="plus" data-size="16"></span><span>Ajouter</span></button></header>
+          <div class="card card--list" id="recList"></div>
+        </section>
+        <section class="settings__section">
+          <header class="settings__head"><h3>Sécurité</h3></header>
+          <div class="card card--list">
+            <button type="button" class="settings__row" data-setting="pin-change"><span data-icon="lock" data-size="18"></span><span id="pinRowLabel">Changer le code PIN</span></button>
+            <button type="button" class="settings__row" data-setting="pin-remove" id="pinRemoveRow"><span data-icon="close" data-size="18"></span><span>Désactiver le code PIN</span></button>
+          </div>
+        </section>
+        <section class="settings__section">
+          <header class="settings__head"><h3>Apparence</h3></header>
+          <div class="segmented" role="tablist" id="themeChoice">
+            <button type="button" role="tab" data-theme-choice="dark" aria-selected="true">Sombre</button>
+            <button type="button" role="tab" data-theme-choice="light" aria-selected="false">Clair</button>
+          </div>
+        </section>
+        <section class="settings__section">
+          <header class="settings__head"><h3>Sauvegarde</h3></header>
+          <div class="card card--list">
+            <button type="button" class="settings__row" data-setting="export"><span data-icon="download" data-size="18"></span><span>Exporter mes données (.json)</span></button>
+            <label class="settings__row"><span data-icon="upload" data-size="18"></span><span>Importer une sauvegarde</span><input type="file" accept="application/json,.json" id="importFile" hidden></label>
+          </div>
+          <p class="settings__note" id="syncNote"></p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catégorie -->
+  <div class="sheet-backdrop" id="catSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="catTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="catTitle">Catégorie</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="catForm" novalidate>
+        <input type="hidden" name="editId"><input type="hidden" name="kind"><input type="hidden" name="icon">
+        <div class="field"><span class="field__label">Icône</span><div class="emoji-grid" data-emoji-for="catForm"></div></div>
+        <div class="field"><label class="field__label" for="catName">Nom</label><input class="input" id="catName" name="name" maxlength="40" autocomplete="off"></div>
+        <div class="field" data-for="budget"><label class="field__label" for="catBudget">Budget mensuel · € <span class="field__opt">(vide = sans plafond)</span></label><input class="input" id="catBudget" name="budget" inputmode="decimal" placeholder="Ex. 400" autocomplete="off"></div>
+        <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="catDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer la catégorie</span></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Récurrence -->
+  <div class="sheet-backdrop" id="recSheet" hidden>
+    <div class="sheet sheet--tall" role="dialog" aria-modal="true" aria-labelledby="recTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="recTitle">Opération récurrente</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="recForm" novalidate>
+        <input type="hidden" name="editId">
+        <div class="segmented segmented--types" role="radiogroup" aria-label="Type">
+          <label><input type="radio" name="type" value="expense" checked><span>Charge</span></label>
+          <label><input type="radio" name="type" value="income"><span>Revenu</span></label>
+        </div>
+        <div class="field"><label class="field__label" for="recLabel">Libellé</label><input class="input" id="recLabel" name="label" maxlength="60" placeholder="Ex. Loyer, Netflix, Salaire" autocomplete="off"></div>
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="recAmount">Montant mensuel · €</label><input class="input" id="recAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+          <div class="field"><label class="field__label" for="recDay">Jour du mois</label><input class="input" id="recDay" name="day" inputmode="numeric" placeholder="1 à 28" autocomplete="off"></div>
+          <div class="field field--full"><label class="field__label" for="recCategory">Catégorie</label><select class="input select" id="recCategory" name="categoryId"></select></div>
+          <div class="field field--full"><label class="field__label" for="recStart">À partir de</label><input class="input" id="recStart" type="month" name="start"></div>
+        </div>
+        <label class="toggle"><input type="checkbox" name="active" checked><span class="toggle__track"></span><span>Active</span></label>
+        <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="recDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer</span></button>
+      </form>
+    </div>
+  </div>
+
+  <noscript><div class="noscript">JavaScript est nécessaire pour utiliser cette application.</div></noscript>
+</body>
+</html>
