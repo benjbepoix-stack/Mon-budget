@@ -22,7 +22,7 @@ HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance p
 index.html                  Squelette HTML
 manifest.webmanifest        Manifeste PWA (icônes icon-*.png, apple-touch-icon.png)
 database.rules.json         Règles de la Realtime Database
-css/                        tokens, base, composants, mise en page, views/budget.css
+css/                        tokens, theme (ambiance Sauge), base, composants, mise en page, views/budget.css
 js/
   main.js                   Point d'entrée
   config/firebase-config.js Configuration Firebase (à remplir)

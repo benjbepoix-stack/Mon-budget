@@ -2,7 +2,9 @@
 import { esc } from '../core/utils.js';
 import { formatKey } from '../core/dates.js';
 
-export const PALETTE = ['#2ee6a8', '#6c8cff', '#ffc24b', '#ff7a85', '#b48cff', '#4fd1d9', '#ff9ecf', '#9aa8bf'];
+// Couleurs par défaut ; le thème peut les redéfinir via --series-1 … --series-8.
+const DEFAULT_SERIES = ['#2ee6a8', '#6c8cff', '#ffc24b', '#ff7a85', '#b48cff', '#4fd1d9', '#ff9ecf', '#9aa8bf'];
+export const PALETTE = DEFAULT_SERIES.map((hex, i) => `var(--series-${i + 1}, ${hex})`);
 
 /**
  * Anneau de répartition.

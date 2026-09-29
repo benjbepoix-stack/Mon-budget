@@ -1,0 +1,82 @@
+/* =========================================================
+   IDENTITÉ « MON BUDGET » — ambiance Sauge (pastel, sobre)
+   Surcharge les tokens communs (tokens.css) pour distinguer
+   l'application de Mon tableau de bord.
+
+   Palette des graphiques : adoucie et validée (contraste, daltonisme)
+   pour le fond sombre et le fond clair.
+   ========================================================= */
+:root {
+  --bg:#111311;
+  --bg-2:#151815;
+  --surface:rgba(29,33,29,.72);
+  --surface-solid:#1b1f1b;
+  --border:rgba(255,255,255,.07);
+  --accent:#b8cca9;
+  --accent-2:#a4bb94;
+  --accent-ink:#1c2915;
+  --accent-soft:rgba(184,204,169,.12);
+  --gradient-accent:linear-gradient(135deg,#c6d8b8 0%,#a7bd97 100%);
+  --gradient-hero:linear-gradient(160deg,rgba(184,204,169,.08) 0%,rgba(184,204,169,.02) 100%);
+  --shadow-accent:0 6px 18px -10px rgba(184,204,169,.4);
+  --ambient-1:rgba(184,204,169,.05);
+  --ambient-2:rgba(210,200,170,.03);
+  --ambient-3:rgba(0,0,0,0)
+}
+
+:root[data-theme="light"] {
+  --bg:#f5f6f2;
+  --bg-2:#eef0ea;
+  --surface:rgba(255,255,255,.85);
+  --surface-solid:#fff;
+  --accent:#5b7a4b;
+  --accent-2:#789768;
+  --accent-ink:#22331a;
+  --accent-soft:rgba(91,122,75,.09);
+  --gradient-accent:linear-gradient(135deg,#dfe9d6 0%,#cbdcbf 100%);
+  --gradient-hero:linear-gradient(160deg,rgba(184,204,169,.2) 0%,rgba(255,255,255,0) 100%);
+  --shadow-accent:0 6px 16px -10px rgba(91,122,75,.4);
+  --ambient-1:rgba(184,204,169,.14);
+  --ambient-2:rgba(0,0,0,0);
+  --ambient-3:rgba(0,0,0,0)
+}
+
+:root {
+  --series-1:#5e97d0;
+  --series-2:#c67e55;
+  --series-3:#33a795;
+  --series-4:#ad8e3e;
+  --series-5:#c2779b;
+  --series-6:#76a15e;
+  --series-7:#9187ce;
+  --series-8:#ca786e
+}
+
+:root[data-theme="light"] {
+  --series-1:#4c84bc;
+  --series-2:#b26c44;
+  --series-3:#149483;
+  --series-4:#9a7c2a;
+  --series-5:#af6589;
+  --series-6:#648e4c;
+  --series-7:#8075ba;
+  --series-8:#b7665c
+}
+
+/* Couleurs secondaires (icônes de section, épargne, alertes douces) en tons pastel */
+:root {
+  --blue: #9fb7d4;
+  --blue-soft: rgba(159, 183, 212, .12);
+  --violet: #b9aee2;
+  --violet-soft: rgba(185, 174, 226, .12);
+  --amber: #dcc084;
+  --amber-soft: rgba(220, 192, 132, .12);
+}
+:root[data-theme="light"] {
+  --blue: #4f6f93;
+  --blue-soft: rgba(79, 111, 147, .09);
+  --violet: #6b5f9e;
+  --violet-soft: rgba(107, 95, 158, .09);
+  --amber: #8a6a1f;
+  --amber-soft: rgba(138, 106, 31, .1);
+}

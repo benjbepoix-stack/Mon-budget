@@ -87,9 +87,9 @@ html.is-pin-locked body > :not(.pin):not(.sheet-backdrop):not(.toast-stack):not(
 .balance__stats--2 > div + div { border-top: 0; border-left: 1px solid var(--border); }
 .balance__stats--2 span { font-size: 11px; }
 .balance__dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
-.balance__dot--income { background: #ffc24b; }
-.balance__dot--expense { background: #6c8cff; }
-.balance__dot--saving { background: #2ee6a8; }
+.balance__dot--income { background: var(--series-3, #ffc24b); }
+.balance__dot--expense { background: var(--series-2, #6c8cff); }
+.balance__dot--saving { background: var(--series-1, #2ee6a8); }
 .balance__pace { display: flex; align-items: center; gap: 6px; margin-top: var(--sp-3); font-size: var(--fs-xs); color: var(--text-2); }
 
 /* ---------- Jauges de budget ---------- */
