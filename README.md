@@ -11,10 +11,11 @@ HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance p
 - **Charges et revenus récurrents** : loyer, abonnements, salaire… ajoutés automatiquement au jour prévu ; coût annuel des charges fixes.
 - **Objectifs d'épargne** : versements manuels, progression, date estimée d'atteinte, mensualité nécessaire pour une échéance.
 - **Analyse** : 12 derniers mois (dépenses, épargne, revenus), moyennes, taux d'épargne, top des dépenses.
+- **Opérations** : filtre par type, puis par catégorie (chips, uniquement les catégories utilisées ce mois-ci) et recherche texte (note ou catégorie).
 - **Catégories** préremplies et modifiables (icône, nom, budget).
 - **Code PIN** à 4 chiffres par appareil, reverrouillage après 1 minute en arrière-plan.
 - **Sauvegarde** : export / import JSON.
-- Thème sombre / clair, 100 % responsive (iPhone et ordinateur).
+- Thème sombre / clair, 100 % responsive (iPhone et ordinateur), fonctionne hors ligne pour l'interface (la synchronisation Firebase demande du réseau).
 
 ## Structure
 
@@ -34,6 +35,10 @@ js/
 ```
 
 Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).
+
+## Hors ligne (PWA)
+
+`sw.js` pré-met en cache l'app-shell à l'installation : l'app s'ouvre même sans réseau, y compris dès le tout premier lancement hors ligne. Il vérifie aussi à chaque ouverture si les fichiers ont changé sur le serveur, pour afficher la dernière version publiée. La synchronisation Firebase reste en ligne (les écritures hors ligne sont conservées et renvoyées au retour du réseau, voir « Robustesse de la synchronisation »).
 
 ## Mise en place de Firebase (≈ 5 minutes)
 

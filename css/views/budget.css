@@ -142,6 +142,10 @@ html.is-pin-locked body > :not(.pin):not(.sheet-backdrop):not(.toast-stack):not(
 .tx__amount { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tx__amount--income { color: var(--accent); }
 .tx__amount--saving { color: var(--violet); }
+.tx-search { position: relative; margin-bottom: var(--sp-3); }
+.tx-search__icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-3); display: flex; pointer-events: none; }
+.tx-search__input { padding-left: 40px; }
+#txCatFilter { margin-bottom: var(--sp-3); }
 .tx-summary { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px var(--sp-3); font-size: var(--fs-sm); color: var(--text-2); font-weight: 600; }
 .tx-summary strong { color: var(--text); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
 .tx-day { margin-bottom: var(--sp-4); }

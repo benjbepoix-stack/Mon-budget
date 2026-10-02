@@ -132,6 +132,8 @@ function init() {
     onReady: onCloudReady,
     getSnapshot: cloudSnapshot
   });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 init();
