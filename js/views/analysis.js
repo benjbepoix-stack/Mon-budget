@@ -1,16 +1,15 @@
-/* Vue « Analyse » : 12 derniers mois, moyennes, top dépenses, charges fixes. */
+/* Vue « Analyse » : 12 derniers mois, moyennes, top dépenses, évolution du salaire. */
 import { $, esc } from '../core/utils.js';
 import { formatEUR, formatEURRound, sum } from '../core/money.js';
-import { state } from '../core/store.js';
-import { lastMonths, monthDate, monthKey, shiftMonth, expenseCategories, recurringOverview, categoryById } from '../core/selectors.js';
+import { lastMonths, monthDate, monthKey, shiftMonth, expenseCategories, recurringOverview, allTransactions, salaryMonths } from '../core/selectors.js';
 import { renderBarChart, PALETTE } from '../ui/charts.js';
-import { icon } from '../ui/icons.js';
 import { slotColor } from './common.js';
 
 const SERIES = {
   expense: { key: 'expense', label: 'Dépenses', color: PALETTE[1] },
   saving: { key: 'saving', label: 'Épargne', color: PALETTE[0] },
-  income: { key: 'income', label: 'Revenus', color: PALETTE[2] }
+  income: { key: 'income', label: 'Revenus', color: PALETTE[2] },
+  salary: { key: 'salary', label: 'Salaire', color: PALETTE[2] }
 };
 
 // Valeurs en centimes : ≥ 1 000 € affiché en k€.
@@ -26,7 +25,7 @@ function renderTrend() {
       label: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
       title: title.charAt(0).toUpperCase() + title.slice(1),
       hasData: m.count > 0,
-      values: { expense: m.expense, saving: m.saving, income: m.income, left: m.left }
+      values: { expense: m.expense, saving: m.saving, income: m.income }
     };
   });
   renderBarChart($('#trendChart'), groups, {
@@ -34,21 +33,18 @@ function renderTrend() {
     line: SERIES.income,
     fmt: formatEUR,
     axisFmt,
-    highlight: monthKey(),
-    extra: g => `<span class="chart-tip__row chart-tip__row--total">Reste<b>${esc(formatEUR(g.values.left))}</b></span>`
+    highlight: monthKey()
   });
 
   // Moyennes sur les mois qui contiennent des données (mois en cours exclu).
   const complete = months.filter(m => m.key !== monthKey() && m.count > 0);
   const avg = key => (complete.length ? formatEURRound(Math.round(sum(complete, m => m[key]) / complete.length)) : '—');
-  const income12 = sum(months, m => m.income);
-  const saving12 = sum(months, m => m.saving);
-  const rate = income12 ? Math.round((saving12 / income12) * 100) : null;
+  const fixed = recurringOverview().monthlyExpense;
   $('#trendStats').innerHTML = [
     [avg('income'), 'revenus / mois'],
     [avg('expense'), 'dépenses / mois'],
-    [avg('saving'), 'épargne / mois'],
-    [rate === null ? '—' : `${rate} %`, 'taux d’épargne']
+    [fixed ? formatEURRound(fixed) : '—', 'frais fixes / mois'],
+    [avg('saving'), 'épargne / mois']
   ]
     .map(([v, l]) => `<div class="stat"><strong>${esc(v)}</strong><span>${l}</span></div>`)
     .join('');
@@ -56,7 +52,7 @@ function renderTrend() {
 
 function renderTop() {
   const since = shiftMonth(monthKey(), -11);
-  const expenses = state.transactions.filter(t => t.type === 'expense' && t.date.slice(0, 7) >= since);
+  const expenses = allTransactions().filter(t => t.type === 'expense' && t.date.slice(0, 7) >= since);
   const total = sum(expenses);
   const rows = expenseCategories()
     .map(c => ({ c, amount: sum(expenses.filter(t => t.categoryId === c.id)) }))
@@ -79,28 +75,53 @@ function renderTop() {
     .join('');
 }
 
-function renderRecurring() {
-  const o = recurringOverview();
-  const host = $('#recurringOverview');
-  if (!o.active.length) {
-    host.innerHTML = `<div class="empty-state"><span class="empty-state__icon">${icon('repeat', 22)}</span><p>Aucune charge fixe. Cochez « Répéter chaque mois » lors d’une saisie, ou ajoutez-les dans les réglages.</p></div>`;
-    return;
-  }
-  const expenses = o.active.filter(r => r.type === 'expense').sort((a, b) => b.amount - a.amount);
-  host.innerHTML = `<div class="stats-grid stats-grid--2">
-      <div class="stat"><strong>${formatEUR(o.monthlyExpense)}</strong><span>charges / mois</span></div>
-      <div class="stat"><strong>${formatEURRound(o.yearlyExpense)}</strong><span>coût annuel</span></div>
-    </div>
-    <div class="rec-list">${expenses
-      .map(r => {
-        const c = categoryById(r.categoryId);
-        return `<div class="rec-row"><span class="rec-row__icon" aria-hidden="true">${esc(c?.icon || '🔁')}</span><span class="rec-row__label">${esc(r.label)}<small>le ${r.day} du mois</small></span><span class="rec-row__amount">${formatEUR(r.amount)}<small>${formatEURRound(r.amount * 12)} / an</small></span></div>`;
-      })
-      .join('')}</div>`;
+/** Évolution du salaire : 24 derniers mois, dernier salaire, moyenne et évolution sur un an. */
+function renderSalary() {
+  const months = salaryMonths(24);
+  const paid = months.filter(m => m.amount > 0);
+  const last12 = months.slice(12);
+  const prev12 = months.slice(0, 12);
+  const avg = list => {
+    const withPay = list.filter(m => m.amount > 0);
+    return withPay.length ? Math.round(sum(withPay, m => m.amount) / withPay.length) : 0;
+  };
+  const a1 = avg(last12);
+  const a0 = avg(prev12);
+  const label = key => {
+    const s = monthDate(key).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  const lastPaid = paid[paid.length - 1];
+  $('#salarySub').textContent = lastPaid ? `Catégorie « Salaire » · 24 derniers mois` : 'Saisissez vos salaires dans la catégorie « Salaire »';
+  renderBarChart(
+    $('#salaryChart'),
+    months.map((m, i) => ({
+      key: m.key,
+      label: monthDate(m.key).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
+      title: label(m.key),
+      values: { salary: m.amount },
+      before: i >= 12 ? months[i - 12].amount : null
+    })),
+    {
+      bars: [SERIES.salary],
+      fmt: formatEUR,
+      axisFmt,
+      highlight: monthKey(),
+      extra: g => (g.before && g.values.salary ? `<span class="chart-tip__row">Un an avant<b>${esc(formatEUR(g.before))}</b></span>` : '')
+    }
+  );
+  const evolution = a0 && a1 ? ((a1 - a0) / a0) * 100 : null;
+  $('#salaryStats').innerHTML = [
+    [lastPaid ? formatEURRound(lastPaid.amount) : '—', lastPaid ? `dernier salaire · ${monthDate(lastPaid.key).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}` : 'dernier salaire'],
+    [a1 ? formatEURRound(a1) : '—', 'moyenne sur 12 mois'],
+    [evolution === null ? '—' : `${evolution >= 0 ? '+' : '−'}${Math.abs(evolution).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`, 'sur un an']
+  ]
+    .map(([v, l]) => `<div class="stat"><strong>${esc(v)}</strong><span>${esc(l)}</span></div>`)
+    .join('');
 }
 
 export function renderAnalysis() {
   renderTrend();
   renderTop();
-  renderRecurring();
+  renderSalary();
 }

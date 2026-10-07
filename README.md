@@ -1,16 +1,18 @@
 # Mon budget
 
-Application personnelle de suivi de budget, installable sur l'écran d'accueil de l'iPhone.
+Application personnelle de suivi des frais fixes, du budget et de l'évolution du salaire, installable sur l'écran d'accueil de l'iPhone.
 HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance payante. Synchronisation multi-appareils via **Firebase Realtime Database** (offre gratuite).
 
 ## Fonctionnalités
 
-- **Mois en cours** : revenus − dépenses − épargne = **reste à vivre**, projection des dépenses au rythme actuel.
+- **Mois en cours** : dépenses du mois face à la somme des budgets (jauge, reste ou dépassement), réparties en **frais fixes** et **dépenses courantes**, revenus du mois, projection au rythme actuel (pas de calcul de « reste à vivre »).
+- **Frais fixes** (onglet Mois) : charges récurrentes actives, total par mois et par an.
 - **Budgets par catégorie** : plafond mensuel, jauges avec alerte à 80 % et 100 %, remise à zéro chaque mois.
 - **Saisie rapide** (bouton **+**) : montant, catégorie en un toucher, date, note ; option « Répéter chaque mois ».
 - **Charges et revenus récurrents** : loyer, abonnements, salaire… ajoutés automatiquement au jour prévu ; coût annuel des charges fixes.
 - **Objectifs d'épargne** : versements manuels, progression, date estimée d'atteinte, mensualité nécessaire pour une échéance.
-- **Analyse** : 12 derniers mois (dépenses, épargne, revenus), moyennes, taux d'épargne, top des dépenses.
+- **Analyse** : 12 derniers mois (dépenses, épargne, revenus), moyennes (revenus, dépenses, frais fixes, épargne), top des dépenses, **évolution du salaire** sur 24 mois (catégorie « Salaire ») : dernier salaire, moyenne sur 12 mois, évolution sur un an.
+- **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien) — lecture seule, un appui ouvre l'app d'origine. Publiées par ces apps sous `budget/linked/garage` et `budget/linked/maison`. ⚠️ Republier `database.rules.json` dans la console Firebase pour autoriser ce chemin. Ne pas les ressaisir à la main.
 - **Opérations** : filtre par type, puis par catégorie (chips, uniquement les catégories utilisées ce mois-ci) et recherche texte (note ou catégorie).
 - **Catégories** préremplies et modifiables (icône, nom, budget).
 - **Code PIN** à 4 chiffres par appareil, reverrouillage après 1 minute en arrière-plan.

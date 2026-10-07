@@ -18,15 +18,29 @@ export const goalById = id => state.goals.find(g => g.id === id);
 export const expenseCategories = () => state.categories.filter(c => c.kind === 'expense');
 export const incomeCategories = () => state.categories.filter(c => c.kind === 'income');
 
-export const monthTransactions = key => state.transactions.filter(t => t.date.startsWith(key));
+/** Opérations saisies ici + dépenses reliées (Mon Garage, Ma Maison), en lecture seule. */
+export const allTransactions = () => (state.linked?.length ? [...state.transactions, ...state.linked].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)) : state.transactions);
+export const monthTransactions = key => allTransactions().filter(t => t.date.startsWith(key));
 
-/** Revenus, dépenses, épargne et reste à vivre d'un mois. */
+/** Revenus, dépenses (dont frais fixes = charges récurrentes), épargne d'un mois. */
 export function monthSummary(key) {
   const list = monthTransactions(key);
+  const expenses = list.filter(t => t.type === 'expense');
   const income = sum(list.filter(t => t.type === 'income'));
-  const expense = sum(list.filter(t => t.type === 'expense'));
+  const expense = sum(expenses);
+  const fixed = sum(expenses.filter(t => t.recurringId));
   const saving = sum(list.filter(t => t.type === 'saving'));
-  return { income, expense, saving, left: income - expense - saving, count: list.length };
+  return { income, expense, fixed, variable: expense - fixed, saving, count: list.length };
+}
+
+/** Catégories de revenu « salaire » (identifiant d'origine ou nom contenant « salaire »). */
+export const salaryCategoryIds = () => new Set(incomeCategories().filter(c => c.id === 'salaire' || /salaire/i.test(c.name)).map(c => c.id));
+
+/** Salaire perçu chaque mois sur les N derniers mois (du plus ancien au plus récent). */
+export function salaryMonths(n = 24, end = monthKey()) {
+  const ids = salaryCategoryIds();
+  const list = state.transactions.filter(t => t.type === 'income' && ids.has(t.categoryId));
+  return Array.from({ length: n }, (_, i) => shiftMonth(end, i - n + 1)).map(key => ({ key, amount: sum(list.filter(t => t.date.startsWith(key))) }));
 }
 
 /** Dépenses par catégorie du mois, avec budget et progression. */

@@ -12,7 +12,7 @@
  */
 import { readJSON, readText, write } from '../services/storage.js';
 import { sameJSON } from './utils.js';
-import { normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeTheme } from './schema.js';
+import { normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeTheme, normalizeLinked } from './schema.js';
 
 const LOCAL_KEYS = {
   categories: 'budget_categories',
@@ -22,6 +22,8 @@ const LOCAL_KEYS = {
   theme: 'budget_theme'
 };
 const UNSYNCED_KEY = 'budget_unsynced';
+/** Dépenses publiées par Mon Garage / Ma Maison : lues seulement, jamais écrites d'ici (pas dans SLICES). */
+const LINKED_KEY = 'budget_linked';
 const NORMALIZERS = {
   categories: normalizeCategories,
   transactions: normalizeTransactions,
@@ -71,6 +73,7 @@ export function loadLocal() {
     state[slice] = NORMALIZERS[slice](readJSON(LOCAL_KEYS[slice], null));
     known[slice] = toMap(state[slice]);
   });
+  state.linked = normalizeLinked(readJSON(LINKED_KEY, null));
   const saved = readJSON(UNSYNCED_KEY, {});
   unsynced = saved && typeof saved === 'object' ? saved : {};
   SLICES.forEach(persist);
@@ -168,6 +171,13 @@ export function applyRemote(cloud) {
     state[slice] = next;
     persist(slice);
     changed.push(slice);
+  }
+  // Dépenses reliées : on garde la forme brute (re-normalisée à chaque lecture locale).
+  const linked = normalizeLinked(cloud.linked);
+  if (!sameJSON(linked, state.linked)) {
+    state.linked = linked;
+    write(LINKED_KEY, JSON.stringify(cloud.linked || null));
+    changed.push('linked');
   }
   if (changed.length) notify(changed, 'remote');
   return changed;

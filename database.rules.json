@@ -26,6 +26,16 @@
           ".validate": "newData.hasChildren(['id', 'name', 'target']) && newData.child('target').isNumber() && newData.child('target').val() > 0"
         }
       },
+      "linked": {
+        "$source": {
+          ".validate": "($source === 'garage' || $source === 'maison') && newData.hasChildren(['updatedAt'])",
+          "items": {
+            "$id": {
+              ".validate": "newData.hasChildren(['date', 'amount']) && newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() <= 100000000 && newData.child('date').isString() && newData.child('date').val().matches(/^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/)"
+            }
+          }
+        }
+      },
       "$other": { ".validate": false }
     }
   }

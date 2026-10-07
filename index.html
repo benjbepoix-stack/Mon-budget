@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Suivi de budget : budgets par catégorie, charges fixes, objectifs d'épargne.">
+  <meta name="description" content="Suivi de budget : frais fixes, budgets par catégorie, évolution du salaire, objectifs d'épargne.">
   <meta name="theme-color" content="#111311">
   <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -90,6 +90,14 @@
         <div class="card card--list" id="budgetList"></div>
       </section>
 
+      <section class="section">
+        <header class="section__head">
+          <div><h2 class="section__title"><span class="section__icon section__icon--violet" data-icon="repeat" data-size="18"></span>Frais fixes</h2><p class="card__sub" id="fixedSub"></p></div>
+          <button type="button" class="link-btn" data-open-settings="recurring">Gérer</button>
+        </header>
+        <div class="card" id="fixedList"></div>
+      </section>
+
       <section class="section card">
         <header class="card__head"><div><h2 class="card__title">Répartition des dépenses</h2><p class="card__sub" id="donutSub"></p></div></header>
         <div class="donut-chart donut-chart--stack">
@@ -153,11 +161,9 @@
         <div id="topCategories"></div>
       </section>
       <section class="section card">
-        <header class="card__head">
-          <div><h2 class="card__title">Charges fixes</h2><p class="card__sub">Opérations récurrentes actives</p></div>
-          <button type="button" class="link-btn" data-open-settings="recurring">Gérer</button>
-        </header>
-        <div id="recurringOverview"></div>
+        <header class="card__head"><div><h2 class="card__title">Évolution du salaire</h2><p class="card__sub" id="salarySub">24 derniers mois</p></div></header>
+        <div id="salaryChart"></div>
+        <div class="stats-grid stats-grid--3" id="salaryStats"></div>
       </section>
     </section>
   </main>

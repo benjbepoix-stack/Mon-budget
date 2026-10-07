@@ -94,5 +94,30 @@ export function normalizeGoals(raw) {
     .filter(g => g.name && g.target !== null);
 }
 
+/*
+ * Dépenses reliées (lecture seule) : publiées par Mon Garage et Ma Maison sous
+ * budget/linked/<app> pour éviter la double saisie des entretiens. Comptées
+ * comme des dépenses, modifiables uniquement dans l'app d'origine.
+ * Seulement à partir du 1er octobre 2026 (mise en place du lien).
+ */
+export const LINK_START = '2026-10-01';
+export const LINKED_SOURCES = {
+  garage: { name: 'Mon Garage', categoryId: 'transport', icon: '🚗', url: 'https://benjbepoix-stack.github.io/Mon-garage/' },
+  maison: { name: 'Ma Maison', categoryId: 'logement', icon: '🏠', url: 'https://benjbepoix-stack.github.io/Ma-maison/#/entretien' }
+};
+
+export function normalizeLinked(raw) {
+  const root = isObj(raw) ? raw : {};
+  const out = [];
+  Object.keys(LINKED_SOURCES).forEach(source => {
+    const items = isObj(root[source]) && isObj(root[source].items) ? root[source].items : {};
+    Object.entries(items).forEach(([key, x]) => {
+      if (!isObj(x) || !isDateKey(x.date) || x.date < LINK_START || cents(x.amount) === null) return;
+      out.push({ id: `link-${source}-${str(key, 80)}`, type: 'expense', amount: x.amount, date: x.date, categoryId: LINKED_SOURCES[source].categoryId, note: str(x.label, 120) || LINKED_SOURCES[source].name, linked: source, kind: str(x.kind, 40) });
+    });
+  });
+  return out.sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+}
+
 export const normalizeTheme = v => (v === 'light' ? 'light' : 'dark');
 export { isMonth };
