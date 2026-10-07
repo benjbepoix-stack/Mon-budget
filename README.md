@@ -71,3 +71,6 @@ python3 -m http.server 8080   # puis http://localhost:8080
 ## Déploiement
 
 GitHub Pages : **Settings → Pages → Deploy from a branch → `main` / root**.
+
+## Style
+Style minimaliste commun aux apps (anthracite, cartes pleines), couleur **Sauge**. Logo : pile de pièces et euro avec la ligne d'horizon commune aux logos des apps.
