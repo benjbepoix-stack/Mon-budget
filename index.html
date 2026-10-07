@@ -28,12 +28,12 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/views/budget.css">
+  <link rel="stylesheet" href="css/minimal.css">
 
   <script type="module" src="js/main.js"></script>
 </head>
 
 <body>
-  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
 
   <!-- ================= VERROU PIN ================= -->
   <div class="pin" id="pinScreen" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
@@ -190,11 +190,8 @@
           <div class="chip-grid" id="txGoals" role="radiogroup" aria-labelledby="txGoalLabel"></div>
           <input type="hidden" name="goalId">
         </div>
-        <div class="form-grid">
-          <div class="field"><label class="field__label" for="txDate">Date</label><input class="input" id="txDate" type="date" name="date" required></div>
-          <div class="field"><label class="field__label" for="txNote">Note <span class="field__opt">(facultatif)</span></label><input class="input" id="txNote" name="note" maxlength="200" placeholder="Ex. Carrefour" autocomplete="off"></div>
-        </div>
         <label class="toggle" data-for="repeat"><input type="checkbox" name="repeat"><span class="toggle__track"></span><span>Répéter chaque mois <small>(charge fixe ou revenu régulier)</small></span></label>
+        <details class="more-fields"><summary>Plus de détails</summary><div class="form-grid"><div class="field"><label class="field__label" for="txDate">Date</label><input class="input" id="txDate" type="date" name="date" required></div><div class="field"><label class="field__label" for="txNote">Note <span class="field__opt">(facultatif)</span></label><input class="input" id="txNote" name="note" maxlength="200" placeholder="Ex. Carrefour" autocomplete="off"></div></div></details>
         <div class="form-actions">
           <button type="button" class="btn btn--ghost" data-close>Annuler</button>
           <button type="submit" class="btn btn--primary">Enregistrer</button>
@@ -215,8 +212,9 @@
         <div class="field"><label class="field__label" for="goalName">Nom</label><input class="input" id="goalName" name="name" maxlength="40" placeholder="Ex. Vacances d’été" autocomplete="off"></div>
         <div class="form-grid">
           <div class="field"><label class="field__label" for="goalTarget">Montant visé · €</label><input class="input" id="goalTarget" name="target" inputmode="decimal" placeholder="1 500" autocomplete="off"></div>
-          <div class="field"><label class="field__label" for="goalDeadline">Échéance <span class="field__opt">(facult.)</span></label><input class="input" id="goalDeadline" type="date" name="deadline"></div>
+          
         </div>
+        <details class="more-fields"><summary>Plus de détails</summary><div class="form-grid"><div class="field"><label class="field__label" for="goalDeadline">Échéance <span class="field__opt">(facult.)</span></label><input class="input" id="goalDeadline" type="date" name="deadline"></div></div></details>
         <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
         <button type="button" class="btn btn--ghost btn--danger-text" id="goalDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer l’objectif</span></button>
       </form>
@@ -299,9 +297,10 @@
           <div class="field"><label class="field__label" for="recAmount">Montant mensuel · €</label><input class="input" id="recAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
           <div class="field"><label class="field__label" for="recDay">Jour du mois</label><input class="input" id="recDay" name="day" inputmode="numeric" placeholder="1 à 28" autocomplete="off"></div>
           <div class="field field--full"><label class="field__label" for="recCategory">Catégorie</label><select class="input select" id="recCategory" name="categoryId"></select></div>
-          <div class="field field--full"><label class="field__label" for="recStart">À partir de</label><input class="input" id="recStart" type="month" name="start"></div>
+          
         </div>
         <label class="toggle"><input type="checkbox" name="active" checked><span class="toggle__track"></span><span>Active</span></label>
+        <details class="more-fields"><summary>Plus de détails</summary><div class="form-grid"><div class="field field--full"><label class="field__label" for="recStart">À partir de</label><input class="input" id="recStart" type="month" name="start"></div></div></details>
         <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
         <button type="button" class="btn btn--ghost btn--danger-text" id="recDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer</span></button>
       </form>

@@ -1,0 +1,63 @@
+/* =========================================================
+   BUDGET — style minimaliste commun aux apps (anthracite, cartes pleines,
+   un seul accent en dégradé) ; couleurs Sauge.
+   Chargé en dernier : surcharge les jetons de Carnet.
+   ========================================================= */
+:root {
+  --bg: #16171c;
+  --bg-2: #16171c;
+  --surface: #1f2026;
+  --surface-solid: #1f2026;
+  --surface-2: #26272e;
+  --surface-3: #2e3038;
+  --field: #26272e;
+  --border: rgba(255, 255, 255, .05);
+  --border-strong: rgba(255, 255, 255, .1);
+  --text: #f4f4f6;
+  --text-2: #a3a5b0;
+  --text-3: #6b6e7a;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --shadow-md: 0 10px 30px -14px rgba(0, 0, 0, .6);
+  --inner-highlight: none;
+  --glass-blur: none;
+}
+:root[data-theme="light"] {
+  --bg: #f4f4f7;
+  --bg-2: #f4f4f7;
+  --surface: #ffffff;
+  --surface-solid: #ffffff;
+  --surface-2: #f0f0f4;
+  --surface-3: #e7e7ed;
+  --field: #f0f0f4;
+  --border: rgba(20, 20, 40, .06);
+  --border-strong: rgba(20, 20, 40, .12);
+  --text: #15161b;
+  --text-2: #5d606c;
+  --text-3: #9295a2;
+}
+
+/* ---------- Couleurs : Sauge (vert pastel) ---------- */
+:root, :root[data-theme="light"] { --accent: #b8cca9; --accent-2: #a4bb94; --accent-ink: #1c2915; --accent-soft: rgba(184, 204, 169, .14); --gradient-accent: linear-gradient(135deg, #c6d8b8, #a7bd97); --shadow-accent: 0 10px 24px -12px rgba(184, 204, 169, .5); }
+:root[data-theme="light"] { --accent: #5b7a4b; --accent-soft: rgba(91, 122, 75, .1); }
+
+/* ---------- Surfaces : pleines, sans verre ni halo ---------- */
+body { background: var(--bg); }
+.ambient { display: none; }
+.card, .race-card, .metric-card { background: var(--surface); border-color: var(--border); box-shadow: none; }
+.card--hero, .card--gradient, .race-hero { background: var(--surface); border: 0; }
+.race-hero { position: relative; overflow: hidden; }
+.race-hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--gradient-accent); }
+.topbar { background: var(--bg); }
+.topbar__kicker { background: var(--gradient-accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tabbar { background: color-mix(in srgb, var(--surface-solid) 94%, transparent); border-color: var(--border); }
+.tabbar__item.is-active { color: var(--text); background: var(--surface-3); }
+.tabbar__item.is-active [data-icon] { color: var(--accent); }
+.btn--primary, .btn--add { background: var(--gradient-accent); color: var(--accent-ink); border: 0; box-shadow: var(--shadow-accent); }
+.badge { background: var(--surface-3); color: var(--text-2); }
+.badge--glass { background: var(--accent-soft); color: var(--accent); border: 0; }
+.input, .select, .textarea { background: var(--field); border-color: transparent; }
+.sync-pill { background: var(--surface-2); }
+
+
+.input--wheel.is-zero { color: var(--text-3); }
