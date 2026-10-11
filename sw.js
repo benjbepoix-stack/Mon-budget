@@ -2,7 +2,7 @@
    serveur et garde la dernière version pour le mode hors ligne. L'app-shell est aussi
    pré-mis en cache à l'installation, pour qu'un tout premier lancement hors ligne (avant
    toute visite en ligne réussie) affiche l'app au lieu d'un écran blanc. */
-const CACHE = 'mon-budget-v6';
+const CACHE = 'mon-budget-v7';
 
 const PRECACHE_URLS = [
   './',
@@ -25,6 +25,7 @@ const PRECACHE_URLS = [
   './js/core/store.js',
   './js/core/utils.js',
   './js/core/validation.js',
+  './js/features/auth.js',
   './js/features/pin.js',
   './js/features/recurring.js',
   './js/services/firebase.js',

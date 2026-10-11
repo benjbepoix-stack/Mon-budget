@@ -1,4 +1,4 @@
-/* Réglages : catégories & budgets, récurrences, code PIN, thème, sauvegarde. */
+/* Réglages : catégories & budgets, récurrences, compte, code PIN, thème, sauvegarde. */
 import { $, $$, esc, uid, slugify } from '../core/utils.js';
 import { formatEUR, toCents, centsToInput } from '../core/money.js';
 import { state, commit } from '../core/store.js';
@@ -10,6 +10,7 @@ import { toast, toastError } from '../ui/toast.js';
 import { icon } from '../ui/icons.js';
 import { slotColor, renderEmojiPicker } from './common.js';
 import { hasPin, changePin, removePin } from '../features/pin.js';
+import { renderAccount } from '../features/auth.js';
 import { generateRecurring } from '../features/recurring.js';
 
 let catKind = 'expense';
@@ -54,6 +55,7 @@ export function renderSettings() {
   if (!isOpen('settingsSheet')) return;
   renderCategories();
   renderRecurringList();
+  renderAccount();
   $('#pinRowLabel').textContent = hasPin() ? 'Changer le code PIN' : 'Activer un code PIN';
   $('#pinRemoveRow').hidden = !hasPin();
   $$('#themeChoice [data-theme-choice]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.themeChoice === state.theme)));

@@ -1,5 +1,7 @@
 /*
  * Verrouillage par code PIN (4 chiffres), propre à chaque appareil.
+ * Facultatif : rien n'est demandé au premier lancement ; il s'active dans
+ * Réglages › Sécurité, et un code déjà créé verrouille toujours l'app.
  *
  * Le code n'est jamais stocké en clair : seule une empreinte SHA-256 salée
  * est conservée dans le localStorage de l'appareil. Après 5 erreurs, la saisie
@@ -44,7 +46,10 @@ function render(message = '', isError = false) {
   msg.classList.toggle('is-error', isError);
   $$('#pinDots span').forEach((dot, i) => dot.classList.toggle('is-filled', i < entry.length));
   $('#pinForgot').hidden = mode !== 'unlock';
-  $('#pinSkip').hidden = mode === 'unlock';
+  const skip = $('#pinSkip');
+  skip.hidden = mode === 'unlock';
+  // Création depuis les Réglages : on peut renoncer (le code actuel, s'il existe, est conservé).
+  skip.textContent = hasPin() ? 'Annuler' : 'Continuer sans code';
 }
 
 function shake() {
@@ -106,9 +111,13 @@ function unlock() {
   onUnlocked();
 }
 
+/** L'écran du code est affiché (l'app est masquée). */
+export const isLocked = () => !$('#pinScreen').hidden;
+
 export function lock(newMode = hasPin() ? 'unlock' : 'create') {
   mode = newMode;
   entry = '';
+  document.activeElement?.blur?.(); // la saisie au clavier va au pavé, pas à un champ resté actif dessous
   document.documentElement.classList.add('is-pin-locked');
   $('#pinScreen').hidden = false;
   render(lockedFor() ? `Trop d’essais. Réessayez dans ${lockedFor()} s.` : '');
@@ -137,11 +146,8 @@ export function initPin({ onUnlock } = {}) {
     if (/^\d$/.test(e.key)) press(e.key);
     else if (e.key === 'Backspace') press('back');
   });
-  $('#pinSkip').addEventListener('click', () => {
-    // Création facultative : on peut utiliser l'app sans code.
-    write(KEY, JSON.stringify({ skipped: true }));
-    unlock();
-  });
+  // Création facultative : on peut utiliser l'app sans code (rien n'est modifié).
+  $('#pinSkip').addEventListener('click', unlock);
   $('#pinForgot').addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Réinitialiser le code ?',
@@ -159,8 +165,10 @@ export function initPin({ onUnlock } = {}) {
     else if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER_MS && hasPin()) lock('unlock');
   });
 
-  const c = config();
-  if (c?.hash) lock('unlock');
-  else if (c?.skipped) unlock();
-  else lock('create');
+  // Plus d'écran « Créez un code » au premier lancement : seul un code existant verrouille.
+  if (hasPin()) lock('unlock');
+  else {
+    document.documentElement.classList.remove('is-pin-locked');
+    $('#pinScreen').hidden = true;
+  }
 }

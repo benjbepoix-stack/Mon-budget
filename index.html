@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark" class="is-pin-locked">
+<html lang="fr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -18,8 +18,17 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
 
+  <!-- Avant le premier rendu (évite les flashs) : thème (Auto = réglage de l'appareil ; « sombre » enregistré
+       avant le passage au thème Auto, ancien défaut = Auto) et masquage de l'app si un code PIN existe. -->
   <script>
-    try { if (localStorage.getItem('budget_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+    try {
+      var t = localStorage.getItem('budget_theme');
+      if ((t !== 'light' && t !== 'dark') || (t === 'dark' && !localStorage.getItem('budget_theme_auto_v1'))) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f4f4f7' : '#16171c');
+      var pin = JSON.parse(localStorage.getItem('budget_pin') || 'null');
+      if (pin && pin.hash) document.documentElement.classList.add('is-pin-locked');
+    } catch (e) {}
   </script>
 
   <link rel="stylesheet" href="css/tokens.css">
@@ -35,8 +44,8 @@
 
 <body>
 
-  <!-- ================= VERROU PIN ================= -->
-  <div class="pin" id="pinScreen" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+  <!-- ================= VERROU PIN (facultatif : Réglages › Sécurité) ================= -->
+  <div class="pin" id="pinScreen" role="dialog" aria-modal="true" aria-labelledby="pinTitle" hidden>
     <div class="pin__inner">
       <div class="pin__logo" data-icon="lock" data-size="26"></div>
       <h1 class="pin__title" id="pinTitle">Entrez votre code</h1>
@@ -249,6 +258,15 @@
           <header class="settings__head"><h3>Charges &amp; revenus récurrents</h3><button type="button" class="btn btn--add btn--sm" data-rec-add><span data-icon="plus" data-size="16"></span><span>Ajouter</span></button></header>
           <div class="card card--list" id="recList"></div>
         </section>
+        <section class="settings__section" id="settingsAccount">
+          <header class="settings__head"><h3>Compte</h3></header>
+          <div class="card card--list">
+            <div class="settings__row settings__row--static"><span data-icon="user" data-size="18"></span><span class="settings__label" id="accountLine">Connexion…</span></div>
+            <button type="button" class="settings__row" id="loginRow" hidden><span data-icon="user" data-size="18"></span><span>Se connecter</span></button>
+            <button type="button" class="settings__row" id="logoutRow" hidden><span data-icon="logout" data-size="18"></span><span>Se déconnecter</span></button>
+          </div>
+          <p class="settings__note" id="syncNote"></p>
+        </section>
         <section class="settings__section">
           <header class="settings__head"><h3>Sécurité</h3></header>
           <div class="card card--list">
@@ -259,9 +277,11 @@
         <section class="settings__section">
           <header class="settings__head"><h3>Apparence</h3></header>
           <div class="segmented" role="tablist" id="themeChoice">
-            <button type="button" role="tab" data-theme-choice="dark" aria-selected="true">Sombre</button>
+            <button type="button" role="tab" data-theme-choice="auto" aria-selected="true">Auto</button>
+            <button type="button" role="tab" data-theme-choice="dark" aria-selected="false">Sombre</button>
             <button type="button" role="tab" data-theme-choice="light" aria-selected="false">Clair</button>
           </div>
+          <p class="settings__note">Auto suit le réglage clair / sombre de l’appareil.</p>
         </section>
         <section class="settings__section">
           <header class="settings__head"><h3>Sauvegarde</h3></header>
@@ -269,7 +289,6 @@
             <button type="button" class="settings__row" data-setting="export"><span data-icon="download" data-size="18"></span><span>Exporter mes données (.json)</span></button>
             <label class="settings__row"><span data-icon="upload" data-size="18"></span><span>Importer une sauvegarde</span><input type="file" accept="application/json,.json" id="importFile" hidden></label>
           </div>
-          <p class="settings__note" id="syncNote"></p>
         </section>
       </div>
     </div>
@@ -312,6 +331,28 @@
         <label class="toggle"><input type="checkbox" name="active" checked><span class="toggle__track"></span><span>Active</span></label>
         <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
         <button type="button" class="btn btn--ghost btn--danger-text" id="recDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer</span></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Connexion : affichée seulement si Firebase répond « pas de compte » (jamais bloquante au démarrage, après le code PIN) -->
+  <div class="sheet-backdrop" id="authSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="authTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <form class="form auth sheet__scroll" id="authForm" novalidate>
+        <div class="auth__brand"><img class="auth__logo" src="icon.svg" alt="" width="44" height="44"><span class="auth__kicker">Mon budget</span></div>
+        <h2 class="auth__title" id="authTitle">Connexion</h2>
+        <p class="auth__sub" id="authSub">Même compte que Mon Garage et Ma Maison.</p>
+        <div class="field"><label class="field__label" for="authEmail">E-mail</label><input class="input" id="authEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="vous@email.fr" required></div>
+        <div class="field" id="authPasswordField"><label class="field__label" for="authPassword">Mot de passe</label><input class="input" id="authPassword" name="password" type="password" autocomplete="current-password" placeholder="6 caractères minimum" required></div>
+        <p class="auth__error" id="authError" role="alert"></p>
+        <button type="submit" class="btn btn--primary btn--lg btn--block" id="authSubmit">Se connecter</button>
+        <button type="button" class="link-btn link-btn--center" id="authForgot">Mot de passe oublié ?</button>
+        <button type="button" class="btn btn--ghost btn--block" id="authSwitch">Créer un compte</button>
+        <div class="auth__local">
+          <button type="button" class="btn btn--soft btn--block" id="authLocal">Continuer sans compte</button>
+          <p class="auth__hint">Données sur cet appareil uniquement, sans synchronisation. Connexion possible plus tard dans Réglages › Compte.</p>
+        </div>
       </form>
     </div>
   </div>

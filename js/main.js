@@ -1,14 +1,16 @@
-/* Point d'entrée : état, verrou PIN, vues, navigation et synchronisation. */
+/* Point d'entrée : état, verrou PIN, compte, vues, navigation et synchronisation. */
 import { $, $$, debounce } from './core/utils.js';
-import { state, loadLocal, subscribe, applyRemote, setCloudSink, cloudSnapshot, acknowledge } from './core/store.js';
+import { state, loadLocal, subscribe, applyRemote, applyLinked, setCloudSink, resendUnsynced, resetLocal, cloudSnapshot, acknowledge } from './core/store.js';
 import { onMonthChange } from './core/month-state.js';
-import { initCloud, pushCloud, flushNow } from './services/firebase.js';
+import { readText, write } from './services/storage.js';
+import { initCloud, pushCloud, flushNow, clearPending, cloudError, currentUser } from './services/firebase.js';
 import { initDialogs } from './ui/dialog.js';
 import { applyTheme } from './ui/theme.js';
 import { renderStatus } from './ui/status.js';
 import { toastError } from './ui/toast.js';
 import { icon } from './ui/icons.js';
 import { initPin } from './features/pin.js';
+import { initAuth, authChanged, authPending, resumeAuth, renderAccount } from './features/auth.js';
 import { generateRecurring } from './features/recurring.js';
 import { initMonthNavs, initEmojiPickers } from './views/common.js';
 import { renderMonth } from './views/month.js';
@@ -25,6 +27,8 @@ const VIEWS = {
   analysisView: { title: 'Analyse', render: renderAnalysis }
 };
 const VIEW_KEY = 'budget_last_view';
+/** Dernier compte connecté sur cet appareil (changement de compte : données locales vidées). */
+const LAST_UID = 'budget_last_uid';
 let currentView = 'monthView';
 let ready = false;
 
@@ -69,12 +73,39 @@ function initGlobalErrors() {
   window.addEventListener('unhandledrejection', e => report(e.reason));
 }
 
-/** Première synchronisation terminée (ou mode local) : on génère les récurrences. */
+/** Synchronisation du compte terminée (ou mode local / sans compte) : on génère les récurrences. */
 function onCloudReady() {
-  if (ready) return;
   ready = true;
-  generateRecurring();
+  generateRecurring(); // identifiants déterministes : sans effet si déjà générées
 }
+
+/** Réponse de Firebase : compte connecté, ou « pas de compte ». */
+function onUser(user) {
+  if (user) {
+    // Autre compte que le précédent sur cet appareil : on repart d'une base vide (premier compte mémorisé : rien n'est vidé).
+    const last = readText(LAST_UID, '');
+    if (last && last !== user.uid) {
+      clearPending();
+      resetLocal();
+    }
+    write(LAST_UID, user.uid);
+    // Écritures faites sans réseau ou sans compte, pas encore confirmées : envoyées après la première lecture.
+    resendUnsynced();
+  }
+  authChanged(user);
+  // Sans compte : l'app fonctionne avec les données de l'appareil. Si la connexion est proposée, les récurrences
+  // attendent la réponse (connecté : générées sur les données du compte, pas sur une copie peut-être ancienne).
+  if (!user && !authPending()) onCloudReady();
+}
+
+/** « Continuer sans compte » (feuille de connexion refermée) : récurrences générées sur l'appareil. */
+function onLocalChoice() {
+  renderSettings();
+  if (!currentUser()) onCloudReady();
+}
+
+/** Transfert depuis l'ancienne base : un thème « sombre » (ancien défaut) devient « Auto ». */
+const adaptLegacy = data => (data.theme === 'dark' ? { ...data, theme: 'auto' } : data);
 
 function init() {
   initGlobalErrors();
@@ -83,7 +114,9 @@ function init() {
   $$('[data-icon]').forEach(el => (el.innerHTML = icon(el.dataset.icon, Number(el.dataset.size) || 22)));
 
   initDialogs();
-  initPin();
+  // Code PIN d'abord (s'il existe), puis la connexion si elle est nécessaire.
+  initPin({ onUnlock: resumeAuth });
+  initAuth({ onChange: onLocalChoice });
   initMonthNavs();
   initEmojiPickers();
   initQuickAdd();
@@ -121,16 +154,21 @@ function init() {
 
   setCloudSink(pushCloud);
   initCloud({
+    onUser,
     onRemote: cloud => applyRemote(cloud),
+    onLinked: applyLinked,
     onStatus: (status, detail) => {
       renderStatus(status, detail);
       const note = $('#syncNote');
-      if (note) note.textContent = detail ? `Synchronisation : ${detail}` : status === 'online' ? 'Données synchronisées entre vos appareils.' : '';
+      // Sans compte : déjà indiqué par la ligne « Compte ».
+      if (note) note.textContent = status === 'online' ? 'Données synchronisées entre vos appareils.' : detail && (status !== 'local' || cloudError()) ? `Synchronisation : ${detail}` : '';
+      renderAccount();
     },
     onError: message => toastError(`Synchronisation : ${message}`),
     onAck: acknowledge,
     onReady: onCloudReady,
-    getSnapshot: cloudSnapshot
+    getSnapshot: cloudSnapshot,
+    adaptLegacy
   });
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

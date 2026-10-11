@@ -7,8 +7,9 @@
  * s'écrasent donc pas : Firebase fusionne au niveau de chaque élément.
  *
  * Les écritures non confirmées par le serveur sont mémorisées localement
- * (budget_unsynced) et renvoyées au prochain lancement : une dépense saisie
- * sans réseau n'est jamais perdue, même si l'app est fermée entre-temps.
+ * (budget_unsynced) et renvoyées dès qu'un compte est connecté : une dépense
+ * saisie sans réseau (ou sans compte) n'est jamais perdue, même si l'app est
+ * fermée entre-temps.
  */
 import { readJSON, readText, write } from '../services/storage.js';
 import { sameJSON } from './utils.js';
@@ -22,6 +23,8 @@ const LOCAL_KEYS = {
   theme: 'budget_theme'
 };
 const UNSYNCED_KEY = 'budget_unsynced';
+/** Passage au thème Auto (une seule fois) : l'ancien défaut « sombre » devient « auto ». */
+const THEME_AUTO_FLAG = 'budget_theme_auto_v1';
 /** Dépenses publiées par Mon Garage / Ma Maison : lues seulement, jamais écrites d'ici (pas dans SLICES). */
 const LINKED_KEY = 'budget_linked';
 const NORMALIZERS = {
@@ -68,7 +71,12 @@ function valueAt(path) {
 }
 
 export function loadLocal() {
-  state.theme = normalizeTheme(readText(LOCAL_KEYS.theme, 'dark'));
+  state.theme = normalizeTheme(readText(LOCAL_KEYS.theme, 'auto'));
+  // Réglage de cet appareil seulement (pas d'envoi) : le thème du compte reçu à la synchro prime.
+  if (!readText(THEME_AUTO_FLAG, '')) {
+    if (state.theme === 'dark') state.theme = 'auto';
+    write(THEME_AUTO_FLAG, '1');
+  }
   COLLECTIONS.forEach(slice => {
     state[slice] = NORMALIZERS[slice](readJSON(LOCAL_KEYS[slice], null));
     known[slice] = toMap(state[slice]);
@@ -81,21 +89,28 @@ export function loadLocal() {
 
 export const subscribe = fn => (listeners.add(fn), () => listeners.delete(fn));
 
-/** Branche la synchronisation et renvoie les écritures restées en attente. */
+/** Branche la synchronisation. */
 export function setCloudSink(fn) {
   cloudSink = fn;
-  const paths = Object.keys(unsynced);
-  if (paths.length) cloudSink(Object.fromEntries(paths.map(p => [p, valueAt(p)])));
 }
 
-/** Le serveur a confirmé ces chemins. */
-export function acknowledge(paths) {
+/** Renvoie les écritures restées en attente (compte connecté). */
+export function resendUnsynced() {
+  const paths = Object.keys(unsynced);
+  if (paths.length) cloudSink?.(Object.fromEntries(paths.map(p => [p, valueAt(p)])));
+}
+
+/**
+ * Le serveur a confirmé ces chemins (une collection entière confirme aussi ses
+ * éléments). `requeued` : chemins remis en file entre-temps, encore à confirmer.
+ */
+export function acknowledge(paths, requeued = []) {
+  const skip = new Set(requeued);
   let changed = false;
-  paths.forEach(p => {
-    if (unsynced[p]) {
-      delete unsynced[p];
-      changed = true;
-    }
+  Object.keys(unsynced).forEach(p => {
+    if (skip.has(p) || !paths.some(a => p === a || p.startsWith(`${a}/`))) return;
+    delete unsynced[p];
+    changed = true;
   });
   if (changed) persistUnsynced();
 }
@@ -172,15 +187,34 @@ export function applyRemote(cloud) {
     persist(slice);
     changed.push(slice);
   }
-  // Dépenses reliées : on garde la forme brute (re-normalisée à chaque lecture locale).
-  const linked = normalizeLinked(cloud.linked);
-  if (!sameJSON(linked, state.linked)) {
-    state.linked = linked;
-    write(LINKED_KEY, JSON.stringify(cloud.linked || null));
-    changed.push('linked');
-  }
   if (changed.length) notify(changed, 'remote');
   return changed;
+}
+
+/** Dépenses reliées lues dans le nœud du budget (forme brute gardée, re-normalisée à chaque lecture locale). */
+export function applyLinked(raw) {
+  const linked = normalizeLinked(raw);
+  if (sameJSON(linked, state.linked)) return;
+  state.linked = linked;
+  write(LINKED_KEY, JSON.stringify(raw || null));
+  notify(['linked'], 'remote');
+}
+
+/**
+ * Changement de compte sur l'appareil : données remises à zéro avant la synchro
+ * (le thème, réglage de l'appareil, est conservé). Rien n'est envoyé au cloud.
+ */
+export function resetLocal() {
+  COLLECTIONS.forEach(slice => {
+    state[slice] = NORMALIZERS[slice](null);
+    known[slice] = toMap(state[slice]);
+    persist(slice);
+  });
+  state.linked = [];
+  write(LINKED_KEY, 'null');
+  unsynced = {};
+  persistUnsynced();
+  notify([...COLLECTIONS, 'linked'], 'remote');
 }
 
 /** Instantané complet au format cloud (collections indexées par id). */
