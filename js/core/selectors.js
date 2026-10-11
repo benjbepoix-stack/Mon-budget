@@ -1,6 +1,7 @@
 /* Calculs dérivés : totaux du mois, budgets, objectifs, historique. */
 import { state } from './store.js';
 import { sum } from './money.js';
+import { dateKey, addDays } from './dates.js';
 
 const pad = n => String(n).padStart(2, '0');
 
@@ -17,6 +18,24 @@ export const categoryById = id => state.categories.find(c => c.id === id);
 export const goalById = id => state.goals.find(g => g.id === id);
 export const expenseCategories = () => state.categories.filter(c => c.kind === 'expense');
 export const incomeCategories = () => state.categories.filter(c => c.kind === 'income');
+
+/**
+ * Catégories d'un type (saisie rapide), les plus utilisées sur les `days` derniers
+ * jours en premier ; à égalité, l'ordre d'origine (celui des Réglages) est conservé.
+ */
+export function categoriesByUsage(kind, { days = 90, now = new Date() } = {}) {
+  const from = dateKey(addDays(now, -days));
+  const to = dateKey(now);
+  const uses = new Map();
+  state.transactions.forEach(t => {
+    if (t.type === kind && t.date >= from && t.date <= to) uses.set(t.categoryId, (uses.get(t.categoryId) || 0) + 1);
+  });
+  return state.categories
+    .filter(c => c.kind === kind)
+    .map((c, index) => ({ c, index, n: uses.get(c.id) || 0 }))
+    .sort((a, b) => b.n - a.n || a.index - b.index)
+    .map(x => x.c);
+}
 
 /** Opérations saisies ici + dépenses reliées (Mon Garage, Ma Maison), en lecture seule. */
 export const allTransactions = () => (state.linked?.length ? [...state.transactions, ...state.linked].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)) : state.transactions);

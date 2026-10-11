@@ -119,5 +119,7 @@ export function normalizeLinked(raw) {
   return out.sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 }
 
-export const normalizeTheme = v => (v === 'light' ? 'light' : 'dark');
+/** Thème choisi : 'auto' (suit le réglage clair / sombre de l'appareil, par défaut), 'dark' ou 'light'. */
+export const THEMES = ['auto', 'dark', 'light'];
+export const normalizeTheme = v => (THEMES.includes(v) ? v : 'auto');
 export { isMonth };

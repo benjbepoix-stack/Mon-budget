@@ -67,10 +67,11 @@ export const closeTop = () => stack.length && closeSheet(stack[stack.length - 1]
 
 export function initDialogs() {
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && stack.length) {
-      e.preventDefault();
-      closeTop();
-    }
+    if (e.key !== 'Escape' || !stack.length) return;
+    // Écran du code affiché : seules les confirmations ouvertes par-dessus se ferment (pas les feuilles cachées dessous).
+    if (document.documentElement.classList.contains('is-pin-locked') && !stack[stack.length - 1].el.classList.contains('sheet-backdrop--dialog')) return;
+    e.preventDefault();
+    closeTop();
   });
   document.addEventListener('click', e => {
     const closer = e.target.closest('[data-close]');

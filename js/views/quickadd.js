@@ -3,7 +3,7 @@ import { $, esc, uid } from '../core/utils.js';
 import { todayKey } from '../core/dates.js';
 import { toCents, centsToInput, formatEUR } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { expenseCategories, incomeCategories, monthKey } from '../core/selectors.js';
+import { categoriesByUsage, monthKey } from '../core/selectors.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { getMonth, isCurrentMonth } from '../core/month-state.js';
 import { openSheet, closeSheet, confirmDialog } from '../ui/dialog.js';
@@ -30,7 +30,8 @@ function renderChoices() {
       ? state.goals.map(g => chip(g.id, g.name, g.icon, slotColor(g.color), g.id === current, 'goalId')).join('')
       : `<div class="chip-empty">Aucun objectif. <button type="button" class="link-btn" data-new-goal>Créer un objectif</button></div>`;
   } else {
-    const cats = type === 'income' ? incomeCategories() : expenseCategories();
+    // Les plus utilisées sur 90 jours d'abord : la catégorie habituelle est en tête.
+    const cats = categoriesByUsage(type === 'income' ? 'income' : 'expense');
     let current = f.elements.categoryId.value;
     if (!cats.some(c => c.id === current)) current = f.elements.categoryId.value = '';
     $('#txCategories').innerHTML = cats.map(c => chip(c.id, c.name, c.icon, slotColor(c.color), c.id === current, 'categoryId')).join('');

@@ -1,37 +1,39 @@
 # Mon budget
 
 Application personnelle de suivi des frais fixes, du budget et de l'évolution du salaire, installable sur l'écran d'accueil de l'iPhone.
-HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance payante. Synchronisation multi-appareils via **Firebase Realtime Database** (offre gratuite).
+HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance payante. Synchronisation multi-appareils via **Firebase Realtime Database** (offre gratuite), avec le **même compte** que Mon Garage, Ma Maison, Carnet et Allure.
 
 ## Fonctionnalités
 
 - **Mois en cours** : dépenses du mois face à la somme des budgets (jauge, reste ou dépassement), réparties en **frais fixes** et **dépenses courantes**, revenus du mois, projection au rythme actuel (pas de calcul de « reste à vivre »).
 - **Frais fixes** (onglet Mois) : charges récurrentes actives, total par mois et par an.
 - **Budgets par catégorie** : plafond mensuel, jauges avec alerte à 80 % et 100 %, remise à zéro chaque mois.
-- **Saisie rapide** (bouton **+**) : montant, catégorie en un toucher, date, note ; option « Répéter chaque mois ».
+- **Saisie rapide** (bouton **+**) : montant, catégorie en un toucher, date, note ; option « Répéter chaque mois ». Les catégories sont triées par **nombre d'utilisations sur les 90 derniers jours** (la plus utilisée en tête ; à égalité, l'ordre des Réglages).
 - **Charges et revenus récurrents** : loyer, abonnements, salaire… ajoutés automatiquement au jour prévu ; coût annuel des charges fixes.
 - **Objectifs d'épargne** : versements manuels, progression, date estimée d'atteinte, mensualité nécessaire pour une échéance.
 - **Analyse** : 12 derniers mois (dépenses, épargne, revenus), moyennes (revenus, dépenses, frais fixes, épargne), top des dépenses, **évolution du salaire** sur 24 mois (catégorie « Salaire ») : dernier salaire, moyenne sur 12 mois, évolution sur un an.
-- **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien) — lecture seule, un appui ouvre l'app d'origine. Publiées par ces apps sous `budget/linked/garage` et `budget/linked/maison`. ⚠️ Republier `database.rules.json` dans la console Firebase pour autoriser ce chemin. Ne pas les ressaisir à la main.
+- **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien) — lecture seule, un appui ouvre l'app d'origine. Publiées par ces apps, avec le même compte, sous `users/<uid>/budget/linked/garage` et `…/linked/maison` ; Mon budget les lit dans son propre nœud et ne les réécrit jamais. Ne pas les ressaisir à la main.
 - **Opérations** : filtre par type, puis par catégorie (chips, uniquement les catégories utilisées ce mois-ci) et recherche texte (note ou catégorie).
 - **Catégories** préremplies et modifiables (icône, nom, budget).
-- **Code PIN** à 4 chiffres par appareil, reverrouillage après 1 minute en arrière-plan.
+- **Code PIN** facultatif à 4 chiffres par appareil (Réglages › Sécurité), reverrouillage après 1 minute en arrière-plan. Rien n'est demandé au premier lancement ; un code déjà créé continue de verrouiller l'app.
+- **Compte** (Réglages › Compte) : « Connecté : e-mail », « Se connecter » / « Se déconnecter ».
 - **Sauvegarde** : export / import JSON.
-- Thème sombre / clair, 100 % responsive (iPhone et ordinateur), fonctionne hors ligne pour l'interface (la synchronisation Firebase demande du réseau).
+- **Thème Auto** (par défaut : suit le réglage clair / sombre de l'iPhone, y compris ses changements automatiques), Sombre ou Clair (Réglages › Apparence ; choix synchronisé entre appareils). Au passage à cette version, un thème « sombre » enregistré (ancien défaut) devient « Auto », une seule fois (`budget_theme_auto_v1`) ; « clair » est conservé.
+- 100 % responsive (iPhone et ordinateur), fonctionne hors ligne pour l'interface (la synchronisation Firebase demande du réseau).
 
 ## Structure
 
 ```
 index.html                  Squelette HTML
 manifest.webmanifest        Manifeste PWA (icônes icon-*.png, apple-touch-icon.png)
-database.rules.json         Règles de la Realtime Database
+database.rules.json         Règles fermées à publier sur l'ANCIENNE base publique (voir « Sécurité »)
 css/                        tokens, theme (ambiance Sauge), base, composants, mise en page, views/budget.css
 js/
   main.js                   Point d'entrée
-  config/firebase-config.js Configuration Firebase (à remplir)
+  config/firebase-config.js Configuration Firebase (projet commun test-e27e9) + adresse de l'ancienne base
   core/                     store (synchro fine), schema, money (centimes), selectors, validation, dates
-  services/                 firebase, storage
-  features/                 pin (verrou), recurring (génération automatique)
+  services/                 firebase (compte + synchro), storage
+  features/                 auth (connexion, Réglages › Compte), pin (verrou facultatif), recurring (génération automatique)
   ui/                       icônes, modales, toasts, thème, graphiques
   views/                    month, transactions, goals, analysis, quickadd, settings
 ```
@@ -42,26 +44,38 @@ Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).
 
 `sw.js` pré-met en cache l'app-shell à l'installation : l'app s'ouvre même sans réseau, y compris dès le tout premier lancement hors ligne. Il vérifie aussi à chaque ouverture si les fichiers ont changé sur le serveur, pour afficher la dernière version publiée. La synchronisation Firebase reste en ligne (les écritures hors ligne sont conservées et renvoyées au retour du réseau, voir « Robustesse de la synchronisation »).
 
-## Mise en place de Firebase (≈ 5 minutes)
+## Compte et synchronisation
 
-Tant que la configuration est vide, l'application fonctionne **en local** (pastille « Local ») : les données restent sur l'appareil.
+- **Un seul compte pour les 5 apps** : Mon budget utilise le projet Firebase de Mon Garage et Ma Maison (`test-e27e9`, même `firebase-config.js`). Les données sont sous `users/<uid>/budget` : `theme`, `categories/<id>`, `transactions/<id>`, `recurring/<id>`, `goals/<id>`. Le même nœud reçoit `linked/garage` (écrit par Mon Garage), `linked/maison` (Ma Maison) et `migrated` (marque du transfert) : Mon budget les lit et ne les réécrit jamais.
+- **Pas d'écran bloquant au démarrage** : l'app s'affiche tout de suite avec les données de l'appareil. Si Firebase répond « pas de compte », une feuille de connexion s'ouvre par-dessus (e-mail, mot de passe, « Mot de passe oublié ? », « Créer un compte »), avec **« Continuer sans compte »** : données sur l'appareil seulement, pas de synchronisation, pastille « Local » (choix gardé jusqu'à la fermeture de l'app ; la feuille revient au lancement suivant, et l'on peut se connecter depuis Réglages › Compte). Tant que la feuille attend une réponse, les opérations récurrentes ne sont pas générées : après la connexion, elles le sont sur les données du compte (pas sur une copie peut-être ancienne de l'appareil). Firebase injoignable : pas de feuille, mode local.
+- **Code PIN et connexion** ne se superposent jamais : si un code existe, il est demandé d'abord ; la feuille de connexion (si nécessaire) s'ouvre après le déverrouillage.
+- **Session partagée** : les apps sont sur la même origine (`benjbepoix-stack.github.io`) ; dans un même navigateur, être connecté dans Mon Garage suffit. Sur iPhone, chaque app installée sur l'écran d'accueil a son propre stockage : une connexion par app, une seule fois.
+- **Changement de compte** sur l'appareil (autre compte que le dernier mémorisé, clé `budget_last_uid`) : les données locales sont vidées avant la synchro (le thème est conservé). À la première connexion après la mise à jour, rien n'est vidé.
+- **Sans compte**, les opérations saisies restent « non confirmées » (`budget_unsynced`) : à la connexion, elles sont ajoutées au compte élément par élément (rien d'autre n'est écrasé ; les données non modifiées de l'appareil sont remplacées par celles du compte). Connexion à un autre compte que le dernier connecté : elles sont vidées avec le reste.
+- **Se déconnecter** (Réglages › Compte) : les écritures en cours sont envoyées d'abord ; s'il en reste (connexion lente ou absente), la confirmation l'indique : elles restent sur l'appareil et partent à la prochaine connexion à ce compte. Les données restent dans le compte et sur l'appareil.
+- **Accès refusé** (ex. mot de passe changé sur un autre appareil) : pastille « Local » ; après déconnexion puis reconnexion, la synchronisation reprend sans recharger l'app. Une écriture d'une session précédente refusée après coup (déconnexion, changement de compte) est sans effet sur la session en cours.
 
-1. https://console.firebase.google.com → **Ajouter un projet** → nom `mon-budget` (Google Analytics inutile).
-2. Menu **Créer → Realtime Database → Créer une base de données** → emplacement **europe-west1** → démarrer en **mode verrouillé**.
-3. Onglet **Règles** : coller le contenu de `database.rules.json` → **Publier**.
-4. **Paramètres du projet** (roue dentée) → **Vos applications** → icône **Web `</>`** → nom `Mon budget` → **Enregistrer**.
-5. Copier les valeurs de `firebaseConfig` dans `js/config/firebase-config.js` (dont `databaseURL`), puis publier.
+Configuration : `js/config/firebase-config.js` (valeurs identiques à celles de Mon Garage). Si `FIREBASE_CONFIG` vaut `null`, l'app fonctionne uniquement sur l'appareil. La connexion e-mail / mot de passe doit être activée dans le projet (Authentication → Sign-in method), ce qui est déjà le cas pour Mon Garage.
+
+## Transfert depuis l'ancienne base (automatique, une seule fois)
+
+Au premier instantané de `users/<uid>/budget` après connexion, si `migrated` est absent, Mon budget lit l'ancienne base publique en REST (`mon-budget-ade0b…/budget.json`, 8 s max) :
+- données trouvées → `theme`, `categories`, `transactions`, `recurring`, `goals` et `linked` sont écrits dans le nouveau nœud (sans écraser une collection ou un `linked/<app>` déjà présent, publié entre-temps par Mon Garage ou Ma Maison), avec `migrated: { from: '<hôte>', at, by: 'budget' }`, puis affichés ; un thème « sombre » transféré devient « Auto » ;
+- ancienne base vide ou injoignable → les données de l'appareil deviennent la référence, `migrated: { from: 'local', … }`, en une seule écriture élément par élément (deux appareils qui démarrent en même temps fusionnent leurs opérations) ;
+- transfert terminé par un autre appareil pendant la lecture de l'ancienne base → sa marque `migrated` et ses données priment, rien n'est réécrit.
+
+Un nœud sans aucune collection (seulement `linked`, `migrated` et / ou `theme`) est considéré comme vide : les données de l'appareil n'en sont jamais effacées (un thème déjà enregistré dans le compte est gardé). Les opérations récurrentes du mois sont générées après ce premier chargement.
 
 ## Sécurité — à lire
 
 - Le **code PIN** protège l'ouverture de l'application sur l'appareil. Il ne chiffre pas les données.
-- **La base Firebase n'a pas d'authentification** (choix assumé) : toute personne connaissant son adresse, visible dans le code publié, peut lire ou modifier le nœud `budget`. Les règles limitent la forme des données, pas l'accès.
-- Pour une protection complète plus tard : activer *Firebase Authentication* (e-mail / mot de passe, gratuit) et restreindre `budget` à votre identifiant.
+- La `apiKey` et le reste de `firebase-config.js` **ne sont pas des secrets** : Firebase les destine au navigateur. Les données sont protégées par le compte : les règles du projet `test-e27e9` (gérées dans le dépôt Mon Garage) n'autorisent `users/<uid>` qu'au compte connecté. **Aucune règle à publier** pour les nouveaux chemins.
+- ⚠️ **Verrouiller l'ancienne base** `mon-budget-ade0b` (lisible et modifiable par n'importe qui jusque-là) **une fois les données transférées** : ouvrez Mon budget connecté sur un appareil à jour, vérifiez que vos opérations s'affichent (et, dans la console Firebase du projet `test-e27e9`, que `users/<uid>/budget/migrated` existe), puis console Firebase du projet **mon-budget-ade0b** → Realtime Database → *Règles* → coller le contenu de `database.rules.json` (`".read": false, ".write": false`) → *Publier*. Après cela, l'ancienne base n'est plus lisible ni modifiable : un appareil resté sur l'ancienne version passe en « Local » (ses saisies restent sur l'appareil, puis partent dans le compte après sa mise à jour et sa connexion).
 
 ## Robustesse de la synchronisation
 
-- Chaque opération est écrite **individuellement** (`budget/transactions/<id>`) : deux appareils qui ajoutent chacun une dépense hors ligne ne s'écrasent pas.
-- Les écritures non confirmées par le serveur sont **conservées sur l'appareil** et renvoyées au lancement suivant.
+- Chaque opération est écrite **individuellement** (`users/<uid>/budget/transactions/<id>`) : deux appareils qui ajoutent chacun une dépense hors ligne ne s'écrasent pas.
+- Les écritures non confirmées par le serveur (ou faites sans compte) sont **conservées sur l'appareil** (`budget_unsynced`) et renvoyées au lancement suivant ou à la connexion.
 - Les opérations récurrentes ont un identifiant déterministe par mois : pas de doublon même si deux appareils les génèrent.
 
 ## Lancer en local

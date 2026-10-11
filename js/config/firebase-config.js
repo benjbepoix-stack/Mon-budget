@@ -1,26 +1,31 @@
 /*
- * Configuration Firebase (application Web) — projet dédié au budget.
+ * Configuration Firebase (application Web) : même projet que Mon Garage et
+ * Ma Maison (test-e27e9), même compte pour toutes les apps.
+ * Ces valeurs ne sont pas des secrets : elles sont publiques par conception.
+ * Les données sont protégées par l'authentification et les règles du projet
+ * (chaque compte ne voit que ses propres données, sous users/<uid>/).
  *
- * Source : console Firebase → Paramètres du projet → Vos applications →
- * Application Web → « Configuration du SDK ». Si `apiKey` est vide,
- * l'application fonctionne en mode local (données sur l'appareil uniquement).
- *
- * Ces valeurs ne sont pas des secrets (elles sont publiques par conception) ;
- * la base est protégée par les règles de database.rules.json.
+ * Si FIREBASE_CONFIG vaut null, l'application fonctionne sur l'appareil
+ * uniquement (sans connexion ni synchronisation).
  */
 export const FIREBASE_SDK_VERSION = '12.19.0';
 
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyD2MM3R5Fw7dtodLMMCvwGRr_mKJ3GfLq0',
-  authDomain: 'mon-budget-ade0b.firebaseapp.com',
-  projectId: 'mon-budget-ade0b',
-  storageBucket: 'mon-budget-ade0b.firebasestorage.app',
-  messagingSenderId: '363646806020',
-  appId: '1:363646806020:web:6d89f04f262e7efe796d51',
-  // Adresse de la Realtime Database (emplacement europe-west1 / Belgique).
-  // À vérifier dans la console : Realtime Database → onglet Données (adresse en haut).
-  databaseURL: 'https://mon-budget-ade0b-default-rtdb.europe-west1.firebasedatabase.app'
+  apiKey: 'AIzaSyAdtuzUxcc7JIxtYDXh3dPmrXMP3HePBT4',
+  authDomain: 'test-e27e9.firebaseapp.com',
+  databaseURL: 'https://test-e27e9-default-rtdb.europe-west1.firebasedatabase.app/',
+  projectId: 'test-e27e9',
+  storageBucket: 'test-e27e9.firebasestorage.app',
+  messagingSenderId: '435431704932',
+  appId: '1:435431704932:web:abc6928490d225a1021271'
 };
 
-/** Nœud racine des données de l'application dans la base. */
-export const DB_ROOT = 'budget';
+/** Nœud des données du budget sous users/<uid>/. */
+export const DB_NODE = 'budget';
+
+/**
+ * Ancienne base publique (avant les comptes) : lue une seule fois en REST pour
+ * transférer les données, puis à verrouiller (voir database.rules.json et le README).
+ */
+export const LEGACY_DB_URL = 'https://mon-budget-ade0b-default-rtdb.europe-west1.firebasedatabase.app';
+export const LEGACY_DB_PATH = 'budget';
