@@ -324,3 +324,49 @@ export function renderBarChart(host, groups, { bars, line, fmt, axisFmt, highlig
     hideTimer = setTimeout(hide, e.pointerType === 'mouse' ? 0 : 2500);
   });
 }
+
+/* ---------- Budget du mois : cumul des dépenses et projection ---------- */
+
+/**
+ * Courbe cumulée d'un budget sur le mois : trait plein jusqu'à aujourd'hui, pointillé jusqu'à
+ * la projection de fin de mois, trait fin pour le plafond.
+ * @param {HTMLElement} host
+ * @param {{cumul:number[], today:number, days:number, budget:number, projected:number, status:'past'|'current'|'future'}} b
+ * @param {{fmt:(n:number)=>string, label:string}} options
+ */
+export function renderBudgetCurve(host, b, { fmt, label }) {
+  const W = Math.max(260, Math.round(host.clientWidth || 320));
+  const H = 78;
+  const L = 2;
+  const R = 58;
+  const T = 8;
+  const B = 16;
+  const top = Math.max(b.budget, b.projected, b.cumul[b.cumul.length - 1] || 0) * 1.06 || 1;
+  const x = d => L + ((d - 1) / Math.max(1, b.days - 1)) * (W - L - R);
+  const y = v => T + (1 - v / top) * (H - T - B);
+  const over = b.projected > b.budget;
+  const end = b.status === 'current' ? b.today : b.status === 'past' ? b.days : 0;
+  const pts = Array.from({ length: end }, (_, i) => [x(i + 1), y(b.cumul[i])]);
+  const last = pts[pts.length - 1];
+  const line = pts.length ? `M${pts.map(p => p.join(',')).join('L')}` : '';
+  const area = pts.length > 1 ? `${line}L${last[0]},${y(0)}L${pts[0][0]},${y(0)}Z` : '';
+  // Projection : du dernier point connu (ou du 1er du mois à venir) jusqu'à la fin du mois.
+  const from = last || [x(1), y(0)];
+  const proj = b.status !== 'past' ? `<path class="bcurve__proj ${over ? 'is-over' : ''}" d="M${from[0]},${from[1]}L${x(b.days)},${y(b.projected)}"/><circle class="bcurve__end ${over ? 'is-over' : ''}" cx="${x(b.days)}" cy="${y(b.projected)}" r="3"/>` : '';
+  const yb = y(b.budget);
+  const yp = y(b.status === 'past' ? b.cumul[b.days - 1] : b.projected);
+  // Étiquettes à droite : plafond et fin de mois, écartées si elles se chevauchent.
+  const close = Math.abs(yb - yp) < 11;
+  const lb = close ? (yp < yb ? yb + 6 : yb - 2) : yb + 3.5;
+  const lp = close ? (yp < yb ? yp - 2 : yp + 8) : yp + 3.5;
+  const endValue = b.status === 'past' ? b.cumul[b.days - 1] : b.projected;
+  const days = [...new Set([1, b.status === 'current' ? b.today : null, b.days].filter(Boolean))];
+  host.innerHTML = `<svg class="chart bcurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+    <line class="bcurve__budget" x1="${L}" x2="${W - R + 4}" y1="${yb}" y2="${yb}"/>
+    <text class="chart-axis" x="${W - R + 8}" y="${lb}">${esc(fmt(b.budget))}</text>
+    ${area ? `<path class="bcurve__area" d="${area}"/>` : ''}${line ? `<path class="bcurve__line" d="${line}"/>` : ''}${proj}
+    ${last ? `<circle class="bcurve__now" cx="${last[0]}" cy="${last[1]}" r="3.5"/>` : ''}
+    <text class="bcurve__value ${over ? 'is-over' : ''}" x="${W - R + 8}" y="${lp}">${b.status === 'past' ? '' : '≈ '}${esc(fmt(endValue))}</text>
+    ${days.map(d => `<text class="chart-date" x="${x(d)}" y="${H - 2}" text-anchor="${d === 1 ? 'start' : d === b.days && b.today !== d ? 'end' : 'middle'}">${d}</text>`).join('')}
+  </svg>`;
+}

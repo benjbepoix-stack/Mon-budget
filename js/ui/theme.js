@@ -4,8 +4,8 @@
  * « dark » ou « light » (le CSS ne connaît pas « auto »).
  */
 
-/* Couleur de la barre d'état iOS : celle du fond de l'app (css/minimal.css). */
-const THEME_COLORS = { dark: '#16171c', light: '#f4f4f7' };
+/* Couleur de la barre d'état iOS : celle du fond de l'app (css/ardoise.css). */
+const THEME_COLORS = { dark: '#11151c', light: '#f1f3f6' };
 const media = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null;
 let choice = 'auto';
 

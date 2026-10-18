@@ -13,27 +13,23 @@ import { initPin } from './features/pin.js';
 import { initAuth, authChanged, authPending, resumeAuth, renderAccount } from './features/auth.js';
 import { generateRecurring } from './features/recurring.js';
 import { initMonthNavs, initEmojiPickers } from './views/common.js';
-import { renderMonth } from './views/month.js';
-import { initTransactions, renderTransactions } from './views/transactions.js';
-import { initGoals, renderGoals } from './views/goals.js';
-import { renderAnalysis } from './views/analysis.js';
+import { initNote, renderNote } from './views/note.js';
+import { initTrack, renderTrack } from './views/track.js';
 import { initQuickAdd, openTx } from './views/quickadd.js';
 import { initSettings, renderSettings } from './views/settings.js';
 
 const VIEWS = {
-  monthView: { title: 'Ce mois-ci', render: renderMonth },
-  txView: { title: 'Opérations', render: renderTransactions },
-  goalsView: { title: 'Épargne', render: renderGoals },
-  analysisView: { title: 'Analyse', render: renderAnalysis }
+  noteView: { title: 'Noter', render: renderNote },
+  trackView: { title: 'Suivre', render: renderTrack }
 };
 const VIEW_KEY = 'budget_last_view';
 /** Dernier compte connecté sur cet appareil (changement de compte : données locales vidées). */
 const LAST_UID = 'budget_last_uid';
-let currentView = 'monthView';
+let currentView = 'noteView';
 let ready = false;
 
 function switchView(id, { scroll = true } = {}) {
-  if (!VIEWS[id]) id = 'monthView';
+  if (!VIEWS[id]) id = 'noteView';
   currentView = id;
   $$('.view').forEach(v => (v.hidden = v.id !== id));
   $$('[data-view]').forEach(b => {
@@ -120,8 +116,8 @@ function init() {
   initMonthNavs();
   initEmojiPickers();
   initQuickAdd();
-  initTransactions();
-  initGoals();
+  initNote();
+  initTrack();
   initSettings();
 
   subscribe(onStateChange);
@@ -134,7 +130,7 @@ function init() {
     if (tx) openTx({ id: tx.dataset.tx });
   });
 
-  let initial = 'monthView';
+  let initial = 'noteView';
   try {
     initial = sessionStorage.getItem(VIEW_KEY) || initial;
   } catch {
@@ -150,7 +146,7 @@ function init() {
     }
   });
   window.addEventListener('pagehide', flushNow);
-  window.addEventListener('resize', debounce(() => currentView === 'analysisView' && renderAnalysis(), 150));
+  window.addEventListener('resize', debounce(() => currentView === 'trackView' && renderTrack(), 150));
 
   setCloudSink(pushCloud);
   initCloud({
