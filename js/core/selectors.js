@@ -116,3 +116,104 @@ export function recurringOverview() {
   const monthlyIncome = sum(active.filter(r => r.type === 'income'));
   return { active, monthlyExpense, monthlyIncome, yearlyExpense: monthlyExpense * 12 };
 }
+
+/* ---------- Suivi : budgets choisis, charges fixes, moyennes ---------- */
+
+/** Occurrence d'une charge récurrente dans un mois, déjà saisie (ou générée) ? */
+const recurringTx = (list, r) => list.find(t => t.recurringId === r.id);
+const activeExpenseRecurring = key => state.recurring.filter(r => r.active && r.type === 'expense' && r.start <= key);
+
+/**
+ * Budgets suivis (catégories de dépense avec un plafond) : dépensé, cumul jour par jour et
+ * projection à la fin du mois. Les charges récurrentes de la catégorie comptent une fois
+ * (pas extrapolées) ; celles qui n'ont pas encore été prélevées ce mois-ci sont ajoutées.
+ */
+export function budgetTracking(key, now = new Date()) {
+  const current = monthKey(now);
+  const status = key === current ? 'current' : key < current ? 'past' : 'future';
+  const days = daysInMonth(key);
+  const today = status === 'current' ? now.getDate() : status === 'past' ? days : 0;
+  const month = monthTransactions(key).filter(t => t.type === 'expense');
+  return expenseCategories()
+    .filter(c => c.budget)
+    .map(c => {
+      const list = month.filter(t => t.categoryId === c.id);
+      const spent = sum(list);
+      const daily = Array(days).fill(0);
+      list.forEach(t => (daily[Number(t.date.slice(8, 10)) - 1] += t.amount));
+      let acc = 0;
+      const cumul = daily.map(v => (acc += v));
+      const fixed = sum(list.filter(t => t.recurringId));
+      const pending = sum(activeExpenseRecurring(key).filter(r => r.categoryId === c.id && !recurringTx(list, r)));
+      let projected = spent;
+      if (status === 'current') projected = Math.round(fixed + pending + ((spent - fixed) / today) * days);
+      else if (status === 'future') projected = spent + pending;
+      return { category: c, spent, budget: c.budget, projected, cumul, today, days, status };
+    });
+}
+
+/** Charges fixes d'un mois : chaque charge récurrente active, prélevée ou à venir. */
+export function fixedCharges(key) {
+  const txs = monthTransactions(key).filter(t => t.type === 'expense' && t.recurringId);
+  const days = daysInMonth(key);
+  const rows = activeExpenseRecurring(key).map(r => {
+    const tx = recurringTx(txs, r);
+    return { id: r.id, label: r.label, categoryId: r.categoryId, amount: tx ? tx.amount : r.amount, day: tx ? Number(tx.date.slice(8, 10)) : Math.min(r.day, days), paid: Boolean(tx), tx };
+  });
+  // Occurrences d'une charge arrêtée depuis (ou supprimée) : déjà payées ce mois-là.
+  txs.filter(t => !rows.some(r => r.tx === t)).forEach(t => rows.push({ id: t.recurringId, label: t.note || 'Charge fixe', categoryId: t.categoryId, amount: t.amount, day: Number(t.date.slice(8, 10)), paid: true, tx: t }));
+  rows.sort((a, b) => a.day - b.day || b.amount - a.amount);
+  const planned = sum(rows);
+  const paid = sum(rows.filter(r => r.paid));
+  return { rows, planned, paid, count: rows.length, paidCount: rows.filter(r => r.paid).length };
+}
+
+/** Total des charges fixes prélevées chaque mois (du plus ancien au plus récent). */
+export function fixedByMonth(n = 12, end = monthKey()) {
+  const list = state.transactions.filter(t => t.type === 'expense' && t.recurringId);
+  return Array.from({ length: n }, (_, i) => shiftMonth(end, i - n + 1)).map(key => ({ key, amount: sum(list.filter(t => t.date.startsWith(key))) }));
+}
+
+/**
+ * Charges fixes par année : moyenne mensuelle sur les mois où au moins une charge a été
+ * prélevée (une année en cours ou commencée en route reste comparable aux autres ; le mois
+ * en cours, incomplet, n'est pas compté).
+ */
+export function fixedByYear(maxYears = 5, end = monthKey()) {
+  const list = state.transactions.filter(t => t.type === 'expense' && t.recurringId && t.date.slice(0, 7) <= end);
+  const last = Number(end.slice(0, 4));
+  const first = Math.max(last - maxYears + 1, list.reduce((y, t) => Math.min(y, Number(t.date.slice(0, 4))), last));
+  return Array.from({ length: last - first + 1 }, (_, i) => String(first + i)).map(year => {
+    let items = list.filter(t => t.date.startsWith(year));
+    // Mois en cours pas encore complet : écarté, sauf s'il est le seul de l'année.
+    const now = monthKey();
+    if (items.some(t => !t.date.startsWith(now))) items = items.filter(t => !t.date.startsWith(now));
+    const months = new Set(items.map(t => t.date.slice(0, 7))).size;
+    return { key: year, total: sum(items), months, average: months ? Math.round(sum(items) / months) : 0 };
+  });
+}
+
+/** Les N mois complets précédant `end` qui contiennent au moins une opération. */
+export function completeMonths(n = 6, end = monthKey()) {
+  return Array.from({ length: n }, (_, i) => shiftMonth(end, -1 - i)).filter(key => monthTransactions(key).length > 0);
+}
+
+/**
+ * Moyenne mensuelle des dépenses par catégorie, hors charges fixes, sur les mois complets
+ * récents : de quoi ajuster les plafonds.
+ */
+export function categoryAverages(n = 6, end = monthKey()) {
+  const months = completeMonths(n, end);
+  if (!months.length) return { months, rows: [] };
+  const set = new Set(months);
+  const list = allTransactions().filter(t => t.type === 'expense' && !t.recurringId && set.has(t.date.slice(0, 7)));
+  const rows = expenseCategories()
+    .map(c => {
+      const own = list.filter(t => t.categoryId === c.id);
+      const perMonth = months.map(m => sum(own.filter(t => t.date.startsWith(m))));
+      return { category: c, average: Math.round(sum(own) / months.length), highest: Math.max(...perMonth), budget: c.budget };
+    })
+    .filter(r => r.average > 0 || r.budget)
+    .sort((a, b) => b.average - a.average);
+  return { months, rows };
+}

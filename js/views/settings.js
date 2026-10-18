@@ -68,7 +68,7 @@ export function openSettings(section) {
 }
 
 /* ---------- Catégories ---------- */
-function openCategory(id = null) {
+export function openCategory(id = null) {
   const c = id ? categoryById(id) : null;
   const f = $('#catForm');
   f.reset();

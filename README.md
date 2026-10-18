@@ -1,20 +1,22 @@
 # Mon budget
 
-Application personnelle de suivi des frais fixes, du budget et de l'évolution du salaire, installable sur l'écran d'accueil de l'iPhone.
+Application personnelle de suivi de quelques budgets choisis, des charges fixes et de l'évolution du salaire, installable sur l'écran d'accueil de l'iPhone.
 HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance payante. Synchronisation multi-appareils via **Firebase Realtime Database** (offre gratuite), avec le **même compte** que Mon Garage, Ma Maison, Carnet et Allure.
 
 ## Fonctionnalités
 
-- **Mois en cours** : dépenses du mois face à la somme des budgets (jauge, reste ou dépassement), réparties en **frais fixes** et **dépenses courantes**, revenus du mois, projection au rythme actuel (pas de calcul de « reste à vivre »).
-- **Frais fixes** (onglet Mois) : charges récurrentes actives, total par mois et par an.
-- **Budgets par catégorie** : plafond mensuel, jauges avec alerte à 80 % et 100 %, remise à zéro chaque mois.
-- **Saisie rapide** (bouton **+**) : montant, catégorie en un toucher, date, note ; option « Répéter chaque mois ». Les catégories sont triées par **nombre d'utilisations sur les 90 derniers jours** (la plus utilisée en tête ; à égalité, l'ordre des Réglages).
-- **Charges et revenus récurrents** : loyer, abonnements, salaire… ajoutés automatiquement au jour prévu ; coût annuel des charges fixes.
-- **Objectifs d'épargne** : versements manuels, progression, date estimée d'atteinte, mensualité nécessaire pour une échéance.
-- **Analyse** : 12 derniers mois (dépenses, épargne, revenus), moyennes (revenus, dépenses, frais fixes, épargne), top des dépenses, **évolution du salaire** sur 24 mois (catégorie « Salaire ») : dernier salaire, moyenne sur 12 mois, évolution sur un an.
+Deux pages seulement, peu de chiffres : on ne note pas tout, on suit ce qui compte.
+
+- **Noter** : Dépense ou Rentrée, montant, puis « Dans quel budget ? » (liste à cocher : les budgets suivis avec ce qu'il reste, puis « Hors budget » avec les autres catégories) ; en Rentrée : Salaire, Prime… Date (aujourd'hui), note facultative, option **« Chaque mois »** (charge fixe ou salaire saisis automatiquement). Dernières saisies en dessous ; un appui ouvre l'édition. Catégories triées par **nombre d'utilisations sur 90 jours**.
+- **Suivre** (mois par mois) :
+  - **Budgets suivis** : seulement les catégories qui ont un plafond. Case ✓ (ça tient), ! ambre (la projection dépasse), ! rouge (dépassé) ; courbe des dépenses cumulées, pointillé jusqu'à la **projection de fin de mois** (charges fixes de la catégorie comptées une fois, le reste extrapolé au rythme actuel), trait du plafond.
+  - **Charges fixes** : liste à cocher des charges récurrentes du mois (prélevée le X / à venir), total par mois et par an ; **évolution** sur 12 mois (comparaison avec un an avant) ou **par année** (moyenne mensuelle, mois en cours incomplet non compté).
+  - **Rentrées** : rentrées du mois et revenus réguliers à venir ; **salaire sur 12 mois** (catégorie « Salaire »), dernier salaire, moyenne sur 12 mois, évolution sur un an.
+  - **Moyennes par catégorie** : dépense moyenne par mois sur les 6 derniers mois complets (hors charges fixes), avec le plafond actuel et le mois le plus haut ; un appui ouvre la catégorie pour **ajuster le plafond**.
+- **Charges et revenus récurrents** : ajoutés automatiquement au jour prévu (Réglages › Charges & revenus récurrents).
 - **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien) — lecture seule, un appui ouvre l'app d'origine. Publiées par ces apps, avec le même compte, sous `users/<uid>/budget/linked/garage` et `…/linked/maison` ; Mon budget les lit dans son propre nœud et ne les réécrit jamais. Ne pas les ressaisir à la main.
-- **Opérations** : filtre par type, puis par catégorie (chips, uniquement les catégories utilisées ce mois-ci) et recherche texte (note ou catégorie).
-- **Catégories** préremplies et modifiables (icône, nom, budget).
+- **Catégories** préremplies et modifiables (icône, nom, plafond : seules celles qui en ont un sont suivies).
+- **Épargne** : l'ancien onglet Objectifs a été retiré ; les objectifs et versements déjà saisis restent dans les données (et dans l'export JSON).
 - **Code PIN** facultatif à 4 chiffres par appareil (Réglages › Sécurité), reverrouillage après 1 minute en arrière-plan. Rien n'est demandé au premier lancement ; un code déjà créé continue de verrouiller l'app.
 - **Compte** (Réglages › Compte) : « Connecté : e-mail », « Se connecter » / « Se déconnecter ».
 - **Sauvegarde** : export / import JSON.
@@ -35,7 +37,7 @@ js/
   services/                 firebase (compte + synchro), storage
   features/                 auth (connexion, Réglages › Compte), pin (verrou facultatif), recurring (génération automatique)
   ui/                       icônes, modales, toasts, thème, graphiques
-  views/                    month, transactions, goals, analysis, quickadd, settings
+  views/                    note (Noter), track (Suivre), quickadd (édition d'une opération), settings
 ```
 
 Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).

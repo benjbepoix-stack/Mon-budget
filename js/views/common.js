@@ -66,7 +66,6 @@ export function initMonthNavs() {
 
 /* ---------- Sélecteur d'icône (emoji) ---------- */
 const EMOJIS = {
-  goalForm: ['🎯', '✈️', '🏖️', '🚲', '🚗', '🏠', '💻', '📱', '🎓', '💍', '🎁', '🏔️', '⛷️', '🐴', '🐶', '👶', '🎸', '📷', '⌚', '🛋️', '🌴', '🏃', '🛟', '💰'],
   catForm: ['🏠', '🛒', '🚗', '⛽', '🚆', '🚴', '🎬', '🍽️', '☕', '🍺', '💊', '📱', '💡', '🛍️', '👕', '💇', '🐴', '🐶', '👶', '🎓', '📚', '✈️', '🎁', '🧾', '📦', '💼', '↩️', '➕', '💶', '🏦']
 };
 
@@ -94,5 +93,3 @@ export function initEmojiPickers() {
   });
 }
 
-/** Aller vers un onglet (défini dans main.js). */
-export const goTo = view => document.querySelector(`[data-view="${view}"]`)?.click();

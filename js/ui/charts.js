@@ -324,3 +324,131 @@ export function renderBarChart(host, groups, { bars, line, fmt, axisFmt, highlig
     hideTimer = setTimeout(hide, e.pointerType === 'mouse' ? 0 : 2500);
   });
 }
+
+/* ---------- Budget du mois : cumul des dépenses et projection ---------- */
+
+/**
+ * Courbe cumulée d'un budget sur le mois : trait plein jusqu'à aujourd'hui, pointillé jusqu'à
+ * la projection de fin de mois, trait fin pour le plafond.
+ * @param {HTMLElement} host
+ * @param {{cumul:number[], today:number, days:number, budget:number, projected:number, status:'past'|'current'|'future'}} b
+ * @param {{fmt:(n:number)=>string, label:string}} options
+ */
+export function renderBudgetCurve(host, b, { fmt, label }) {
+  const W = Math.max(260, Math.round(host.clientWidth || 320));
+  const H = 78;
+  const L = 2;
+  const R = 58;
+  const T = 8;
+  const B = 16;
+  const top = Math.max(b.budget, b.projected, b.cumul[b.cumul.length - 1] || 0) * 1.06 || 1;
+  const x = d => L + ((d - 1) / Math.max(1, b.days - 1)) * (W - L - R);
+  const y = v => T + (1 - v / top) * (H - T - B);
+  const over = b.projected > b.budget;
+  const end = b.status === 'current' ? b.today : b.status === 'past' ? b.days : 0;
+  const pts = Array.from({ length: end }, (_, i) => [x(i + 1), y(b.cumul[i])]);
+  const last = pts[pts.length - 1];
+  const line = pts.length ? `M${pts.map(p => p.join(',')).join('L')}` : '';
+  const area = pts.length > 1 ? `${line}L${last[0]},${y(0)}L${pts[0][0]},${y(0)}Z` : '';
+  // Projection : du dernier point connu (ou du 1er du mois à venir) jusqu'à la fin du mois.
+  const from = last || [x(1), y(0)];
+  const proj = b.status !== 'past' ? `<path class="bcurve__proj ${over ? 'is-over' : ''}" d="M${from[0]},${from[1]}L${x(b.days)},${y(b.projected)}"/><circle class="bcurve__end ${over ? 'is-over' : ''}" cx="${x(b.days)}" cy="${y(b.projected)}" r="3"/>` : '';
+  const yb = y(b.budget);
+  const yp = y(b.status === 'past' ? b.cumul[b.days - 1] : b.projected);
+  // Étiquettes à droite : plafond et fin de mois, écartées si elles se chevauchent.
+  const close = Math.abs(yb - yp) < 11;
+  const lb = close ? (yp < yb ? yb + 6 : yb - 2) : yb + 3.5;
+  const lp = close ? (yp < yb ? yp - 2 : yp + 8) : yp + 3.5;
+  const endValue = b.status === 'past' ? b.cumul[b.days - 1] : b.projected;
+  const days = [...new Set([1, b.status === 'current' ? b.today : null, b.days].filter(Boolean))];
+  host.innerHTML = `<svg class="chart bcurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+    <line class="bcurve__budget" x1="${L}" x2="${W - R + 4}" y1="${yb}" y2="${yb}"/>
+    <text class="chart-axis" x="${W - R + 8}" y="${lb}">${esc(fmt(b.budget))}</text>
+    ${area ? `<path class="bcurve__area" d="${area}"/>` : ''}${line ? `<path class="bcurve__line" d="${line}"/>` : ''}${proj}
+    ${last ? `<circle class="bcurve__now" cx="${last[0]}" cy="${last[1]}" r="3.5"/>` : ''}
+    <text class="bcurve__value ${over ? 'is-over' : ''}" x="${W - R + 8}" y="${lp}">${b.status === 'past' ? '' : '≈ '}${esc(fmt(endValue))}</text>
+    ${days.map(d => `<text class="chart-date" x="${x(d)}" y="${H - 2}" text-anchor="${d === 1 ? 'start' : d === b.days && b.today !== d ? 'end' : 'middle'}">${d}</text>`).join('')}
+  </svg>`;
+}
+
+/* ---------- Petite courbe d'évolution (salaire) ---------- */
+
+/**
+ * Courbe compacte sur des mois : les mois sans valeur sont sautés, première et dernière valeurs
+ * affichées, info-bulle au toucher.
+ * @param {HTMLElement} host
+ * @param {Array<{key:string,label:string,title:string,value:number}>} points  tous les mois de la période
+ * @param {{fmt:(n:number)=>string, empty:string}} options
+ */
+export function renderTrendLine(host, points, { fmt, empty }) {
+  const shown = points.map((p, i) => ({ ...p, i })).filter(p => p.value > 0);
+  if (!shown.length) {
+    host.innerHTML = `<p class="chart-empty">${esc(empty)}</p>`;
+    return;
+  }
+  const W = Math.max(260, Math.round(host.clientWidth || 320));
+  const H = 96;
+  const L = 6;
+  const R = 54;
+  const T = 14;
+  const B = 18;
+  const values = shown.map(p => p.value);
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const pad = (hi - lo) * 0.25 || hi * 0.04 || 1;
+  const x = i => L + (i / Math.max(1, points.length - 1)) * (W - L - R);
+  const y = v => T + (1 - (v - (lo - pad)) / (hi + pad - (lo - pad))) * (H - T - B);
+  const pts = shown.map(p => [x(p.i), y(p.value)]);
+  const line = monotonePath(pts);
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  const area = pts.length > 1 ? `${line} L${last[0]},${H - B} L${first[0]},${H - B} Z` : '';
+  const ticks = [0, Math.round((points.length - 1) / 2), points.length - 1];
+  const a = shown[0];
+  const z = shown[shown.length - 1];
+  host.innerHTML = `<div class="chart-host"><svg class="chart trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`De ${fmt(a.value)} (${a.title}) à ${fmt(z.value)} (${z.title})`)}">
+    ${area ? `<path class="trend__area" d="${area}"/>` : ''}<path class="chart-line" d="${line}"/>
+    ${pts.length > 1 ? `<text class="chart-axis" x="${first[0]}" y="${first[1] - 7}">${esc(fmt(a.value))}</text>` : ''}
+    <circle class="chart-dot chart-dot--last" cx="${last[0]}" cy="${last[1]}" r="4"/>
+    <text class="chart-value chart-value--last" x="${last[0] + 8}" y="${last[1] + 4}">${esc(fmt(z.value))}</text>
+    ${ticks.map(i => `<text class="chart-date" x="${x(i)}" y="${H - 3}" text-anchor="${i === 0 ? 'start' : 'middle'}">${esc(points[i].label)}</text>`).join('')}
+    <circle class="chart-dot chart-dot--active" r="5" visibility="hidden"/>
+    <rect class="chart-hit" x="0" y="0" width="${W - R + 10}" height="${H - B}"/>
+  </svg><div class="chart-tip" hidden></div></div>`;
+
+  const svg = host.querySelector('svg');
+  const tip = host.querySelector('.chart-tip');
+  const active = svg.querySelector('.chart-dot--active');
+  let hideTimer = null;
+  const show = e => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * W;
+    let k = 0;
+    pts.forEach((p, j) => {
+      if (Math.abs(p[0] - px) < Math.abs(pts[k][0] - px)) k = j;
+    });
+    active.setAttribute('cx', pts[k][0]);
+    active.setAttribute('cy', pts[k][1]);
+    active.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<strong>${esc(fmt(shown[k].value))}</strong><span>${esc(shown[k].title)}</span>`;
+    tip.hidden = false;
+    const scale = rect.width / W;
+    const left = Math.min(Math.max(pts[k][0] * scale - tip.offsetWidth / 2, 0), rect.width - tip.offsetWidth);
+    tip.style.transform = `translate(${left}px, ${pts[k][1] * scale - tip.offsetHeight - 12}px)`;
+  };
+  const hide = () => {
+    tip.hidden = true;
+    active.setAttribute('visibility', 'hidden');
+  };
+  svg.addEventListener('pointermove', e => {
+    clearTimeout(hideTimer);
+    show(e);
+  });
+  svg.addEventListener('pointerdown', e => {
+    clearTimeout(hideTimer);
+    show(e);
+  });
+  svg.addEventListener('pointerleave', e => {
+    hideTimer = setTimeout(hide, e.pointerType === 'mouse' ? 0 : 2500);
+  });
+}
