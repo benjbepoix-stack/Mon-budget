@@ -217,3 +217,90 @@ export function categoryAverages(n = 6, end = monthKey()) {
     .sort((a, b) => b.average - a.average);
   return { months, rows };
 }
+
+/* ---------- Tendances d'un budget ---------- */
+
+const spentIn = (categoryId, prefix, maxDay = 31) =>
+  sum(allTransactions().filter(t => t.type === 'expense' && t.categoryId === categoryId && t.date.startsWith(prefix) && Number(t.date.slice(8, 10)) <= maxDay));
+
+/**
+ * Tendances d'une catégorie pour le mois `key` :
+ * - `month` : ce mois face au mois précédent, au même jour pour le mois en cours (mois entiers sinon) ;
+ * - `year` : moyenne mensuelle de l'année (mois complets) face à celle de l'année précédente.
+ * Chaque tendance vaut null quand la comparaison n'a pas de base.
+ */
+export function budgetTrends(categoryId, key, now = new Date()) {
+  const current = monthKey(now);
+  const prev = shiftMonth(key, -1);
+  const day = key === current ? Math.min(now.getDate(), daysInMonth(prev)) : 31;
+  const a = spentIn(categoryId, key, key === current ? now.getDate() : 31);
+  const b = spentIn(categoryId, prev, day);
+  const month = b ? { now: a, before: b, pct: ((a - b) / b) * 100, day: key === current ? now.getDate() : null, prev } : null;
+
+  // Mois complets de l'année du mois affiché (le mois en cours ne compte pas).
+  const year = key.slice(0, 4);
+  const lastFull = key < current ? key : shiftMonth(current, -1);
+  const months = year => Array.from({ length: 12 }, (_, i) => `${year}-${pad(i + 1)}`).filter(m => m <= lastFull && monthTransactions(m).length > 0);
+  const avg = list => (list.length ? sum(list, m => spentIn(categoryId, m)) / list.length : 0);
+  const thisYear = months(year).filter(m => m.startsWith(year));
+  const lastYear = months(String(Number(year) - 1));
+  const y1 = avg(thisYear);
+  const y0 = avg(lastYear);
+  const yearTrend = thisYear.length && y0 ? { now: Math.round(y1), before: Math.round(y0), pct: ((y1 - y0) / y0) * 100 } : null;
+  return { month, year: yearTrend };
+}
+
+/* ---------- Salaire : niveau habituel et augmentations ---------- */
+
+/** Écart à partir duquel un changement de salaire compte (les petites variations mensuelles sont ignorées). */
+export const RAISE_THRESHOLD = 0.015;
+
+/**
+ * Salaire habituel (moyenne des 3 derniers salaires depuis le dernier changement) et changements durables : un changement
+ * est retenu quand deux mois de suite s'écartent de plus de 1,5 % du niveau précédent, dans le
+ * même sens. Le niveau suit ensuite la moyenne des mois qui restent dans la bande.
+ */
+export function salaryHistory(end = monthKey()) {
+  const ids = salaryCategoryIds();
+  const list = state.transactions.filter(t => t.type === 'income' && ids.has(t.categoryId) && t.date.slice(0, 7) <= end);
+  const byMonth = new Map();
+  list.forEach(t => byMonth.set(t.date.slice(0, 7), (byMonth.get(t.date.slice(0, 7)) || 0) + t.amount));
+  const paid = [...byMonth.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([key, amount]) => ({ key, amount }));
+  if (!paid.length) return { usual: 0, last: null, changes: [] };
+  const changes = [];
+  let band = [paid[0].amount];
+  const level = () => sum(band, v => v) / band.length;
+  for (let i = 1; i < paid.length; i++) {
+    const ref = level();
+    const d1 = (paid[i].amount - ref) / ref;
+    const next = paid[i + 1];
+    const d2 = next ? (next.amount - ref) / ref : 0;
+    if (Math.abs(d1) > RAISE_THRESHOLD && next && Math.abs(d2) > RAISE_THRESHOLD && Math.sign(d1) === Math.sign(d2)) {
+      const to = (paid[i].amount + next.amount) / 2;
+      changes.push({ key: paid[i].key, from: Math.round(ref), to: Math.round(to), pct: ((to - ref) / ref) * 100 });
+      band = [paid[i].amount, next.amount];
+      i++;
+    } else if (Math.abs(d1) <= RAISE_THRESHOLD) {
+      band = [...band.slice(-2), paid[i].amount];
+    }
+  }
+  return { usual: Math.round(level()), last: paid[paid.length - 1], changes: changes.reverse() };
+}
+
+/* ---------- Primes par année ---------- */
+
+export const primeCategoryIds = () => new Set(incomeCategories().filter(c => c.id === 'prime' || /prime/i.test(c.name)).map(c => c.id));
+
+/** Primes reçues par année (les `n` dernières), et ce que l'an dernier avait reçu après le mois en cours. */
+export function primesByYear(n = 3, now = new Date()) {
+  const ids = primeCategoryIds();
+  const list = state.transactions.filter(t => t.type === 'income' && ids.has(t.categoryId));
+  const current = now.getFullYear();
+  const years = Array.from({ length: n }, (_, i) => String(current - n + 1 + i)).map(year => ({ year, total: sum(list.filter(t => t.date.startsWith(year))) }));
+  const month = monthKey(now).slice(5);
+  const lastYear = String(current - 1);
+  const laterLastYear = sum(list.filter(t => t.date.startsWith(lastYear) && t.date.slice(5, 7) > month));
+  // Années d'avant la première prime : pas affichées.
+  const first = years.findIndex(y => y.total);
+  return { years: first === -1 ? [] : years.slice(first), laterLastYear, thisYear: years[years.length - 1]?.total || 0 };
+}

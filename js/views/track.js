@@ -1,10 +1,10 @@
 /* Page « Suivre » : budgets choisis avec projection, charges fixes, rentrées et moyennes par catégorie. */
 import { $, $$, esc } from '../core/utils.js';
-import { formatEUR, formatEURRound, sum } from '../core/money.js';
+import { formatEUR, formatEURRound } from '../core/money.js';
 import { state } from '../core/store.js';
-import { budgetTracking, fixedCharges, fixedByMonth, fixedByYear, categoryAverages, categoryById, monthDate, monthKey, monthTransactions, salaryMonths, daysInMonth } from '../core/selectors.js';
+import { budgetTracking, budgetTrends, fixedCharges, fixedByMonth, fixedByYear, categoryAverages, categoryById, monthDate, monthKey, salaryHistory, primesByYear, daysInMonth } from '../core/selectors.js';
 import { getMonth } from '../core/month-state.js';
-import { renderBarChart, renderBudgetCurve, renderTrendLine } from '../ui/charts.js';
+import { renderBarChart, renderBudgetCurve } from '../ui/charts.js';
 import { icon } from '../ui/icons.js';
 import { monthLabel } from './common.js';
 import { openCategory } from './settings.js';
@@ -22,6 +22,26 @@ const signed = cents => `${cents >= 0 ? '+' : '−'}${formatEURRound(Math.abs(ce
 
 /** Case à cocher façon échéancier : ✓ (ça tient / payé), ! (attention), ○ (à venir). */
 const check = (kind, label) => `<span class="check check--${kind}" role="img" aria-label="${esc(label)}">${kind === 'ok' || kind === 'done' ? icon('check', 13) : kind === 'todo' ? '' : '!'}</span>`;
+
+const pct = p => `${p >= 0 ? '+' : '−'}${Math.abs(p).toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(p) < 10 ? 1 : 0 })} %`;
+
+/** Pastille de tendance d'une dépense : hausse en ambre, baisse en vert, flèche toujours présente. */
+function spendChip(p, label, title) {
+  const flat = Math.abs(p) < 1;
+  const kind = flat ? 'flat' : p > 0 ? 'up' : 'down';
+  return `<span class="trend-chip is-${kind}" title="${esc(title)}"><i aria-hidden="true">${flat ? '=' : p > 0 ? '▲' : '▼'}</i>${flat ? 'stable' : pct(p)} ${esc(label)}</span>`;
+}
+
+function trendChips(categoryId, key) {
+  const t = budgetTrends(categoryId, key);
+  const chips = [];
+  if (t.month) {
+    const prev = shortMonth(t.month.prev);
+    chips.push(spendChip(t.month.pct, t.month.day ? `vs ${t.month.day} ${prev}` : `vs ${prev}`, `${formatEURRound(t.month.now)} contre ${formatEURRound(t.month.before)}`));
+  }
+  if (t.year) chips.push(spendChip(t.year.pct, `depuis janv.`, `${formatEURRound(t.year.now)} par mois en moyenne cette année, contre ${formatEURRound(t.year.before)} l'an dernier`));
+  return chips.length ? `<div class="trend-chips">${chips.join('')}</div>` : '';
+}
 
 /* ---------- Budgets suivis ---------- */
 function renderBudgets(key) {
@@ -49,6 +69,7 @@ function renderBudgets(key) {
         <div class="budget__top">${check(kind, label)}<span class="budget__name">${esc(c.icon)} ${esc(c.name)}</span><span class="budget__amount"><strong>${formatEURRound(b.spent)}</strong> / ${formatEURRound(b.budget)}</span></div>
         ${b.status === 'future' ? '' : `<div class="budget__curve" data-curve="${i}"></div>`}
         <p class="budget__note">${note}</p>
+        ${b.status === 'future' ? '' : trendChips(c.id, key)}
       </div>`;
     })
     .join('');
@@ -119,46 +140,41 @@ function renderFixedTrend(key) {
   }
 }
 
-/* ---------- Rentrées ---------- */
-function renderIncome(key) {
-  const list = monthTransactions(key).filter(t => t.type === 'income');
-  const past = key < monthKey();
-  const pending = past ? [] : state.recurring.filter(r => r.active && r.type === 'income' && r.start <= key && !list.some(t => t.recurringId === r.id));
-  $('#incomeSub').textContent = list.length ? `${formatEURRound(sum(list))} reçus ce mois-ci` : '';
-  const rows = [
-    ...list.map(t => {
-      const c = categoryById(t.categoryId);
-      return `<button type="button" class="check-row is-done" data-tx="${esc(t.id)}">${check('done', 'Reçue')}<span class="check-row__body"><span>${esc(t.note || c?.name || 'Rentrée')}</span><small>le ${Number(t.date.slice(8, 10))}${t.note && c ? ` · ${esc(c.name)}` : ''}</small></span><span class="check-row__amount tx__amount--income">+${formatEUR(t.amount)}</span></button>`;
-    }),
-    ...pending.map(r => `<div class="check-row">${check('todo', 'Prévue')}<span class="check-row__body"><span>${esc(r.label)}</span><small>le ${r.day} · prévue</small></span><span class="check-row__amount">${formatEUR(r.amount)}</span></div>`)
-  ];
-  $('#incomeList').innerHTML = rows.length ? rows.join('') : `<p class="check-empty">Aucune rentrée notée ce mois-ci.</p>`;
-}
-
-/** Salaire : 12 mois jusqu'au mois affiché, dernier salaire, moyenne et évolution sur un an. */
+/* ---------- Salaire : niveau habituel et augmentations ; primes par année ---------- */
 function renderSalary(key) {
   const end = key < monthKey() ? key : monthKey();
-  const months = salaryMonths(24, end);
-  const last12 = months.slice(12);
-  const avg = list => {
-    const paid = list.filter(m => m.amount > 0);
-    return paid.length ? Math.round(sum(paid, m => m.amount) / paid.length) : 0;
-  };
-  const a1 = avg(last12);
-  const a0 = avg(months.slice(0, 12));
-  const lastPaid = [...last12].reverse().find(m => m.amount > 0);
-  renderTrendLine(
-    $('#salaryChart'),
-    last12.map(m => ({ key: m.key, label: shortMonth(m.key), title: monthLabel(m.key), value: m.amount })),
-    { fmt: formatEURRound, empty: 'Notez vos salaires (Rentrée › Salaire) pour suivre leur évolution.' }
-  );
-  $('#salaryStats').innerHTML = [
-    [lastPaid ? formatEURRound(lastPaid.amount) : '—', lastPaid ? `dernier · ${shortMonth(lastPaid.key)}` : 'dernier salaire'],
-    [a1 ? formatEURRound(a1) : '—', 'moyenne 12 mois'],
-    [a0 && a1 ? percent(a1, a0) : '—', 'sur un an']
-  ]
-    .map(([v, l]) => `<div class="stat"><strong>${esc(v)}</strong><span>${esc(l)}</span></div>`)
+  const h = salaryHistory(end);
+  const host = $('#salaryList');
+  $('#salarySub').textContent = h.usual ? 'Les petites variations d’un mois à l’autre ne sont pas comptées' : '';
+  if (!h.usual) {
+    host.innerHTML = `<p class="check-empty">Notez vos salaires (Rentrée › Salaire) : les augmentations apparaîtront ici.</p>`;
+    return;
+  }
+  const rows = h.changes.slice(0, 4).map(c => {
+    const up = c.to >= c.from;
+    const diff = c.to - c.from;
+    return `<div class="raise-row"><span class="raise-row__body"><span>${esc(monthLabel(c.key))} : ${formatEURRound(c.from)} → ${formatEURRound(c.to)}</span><small>${up ? '+' : '−'}${formatEURRound(Math.abs(diff))} par mois · ${up ? 'augmentation' : 'baisse'}</small></span><span class="trend-chip ${up ? 'is-gain' : 'is-up'}"><i aria-hidden="true">${up ? '▲' : '▼'}</i>${pct(c.pct)}</span></div>`;
+  });
+  host.innerHTML = `<div class="raise-row raise-row--head"><span class="raise-row__body"><span>Salaire habituel</span><small>moyenne des derniers salaires · dernier ${formatEUR(h.last.amount)} (${esc(shortMonth(h.last.key))})</small></span><strong>${formatEURRound(h.usual)}</strong></div>${
+    rows.length ? rows.join('') : '<p class="check-empty">Pas d’augmentation repérée pour l’instant.</p>'
+  }`;
+}
+
+function renderPrimes() {
+  const p = primesByYear(3);
+  const host = $('#primeList');
+  if (!p.years.length) {
+    host.innerHTML = `<p class="check-empty">Notez vos primes (Rentrée › Prime) pour les suivre d’une année sur l’autre.</p>`;
+    return;
+  }
+  const max = Math.max(...p.years.map(y => y.total)) || 1;
+  const last = p.years.length - 1;
+  const rows = p.years
+    .map((y, i) => `<div class="year-bar"><span>${y.year}</span><span class="year-bar__track"><span class="year-bar__fill ${i === last ? 'is-partial' : ''}" style="--value:${(y.total / max) * 100}%"></span></span><b>${formatEURRound(y.total)}</b></div>`)
     .join('');
+  const prev = p.years[last - 1];
+  const note = p.laterLastYear && prev ? `${p.years[last].year} pour l’instant. En ${prev.year}, <b>${formatEURRound(p.laterLastYear)}</b> étaient arrivés plus tard dans l’année.` : `${p.years[last].year} pour l’instant.`;
+  host.innerHTML = `${rows}<p class="trend-card__note">${note}</p>`;
 }
 
 /* ---------- Moyennes par catégorie (pour ajuster les plafonds) ---------- */
@@ -189,8 +205,8 @@ export function renderTrack() {
   renderBudgets(key);
   renderFixedList(key);
   renderFixedTrend(key);
-  renderIncome(key);
   renderSalary(key);
+  renderPrimes();
   renderAverages();
 }
 

@@ -278,8 +278,6 @@ button.check-row:active { background: var(--surface-2); }
 .trend-card .stats-grid { margin-top: var(--sp-3); }
 .segmented--sm { margin: 0; padding: 3px; }
 .segmented--sm button { min-height: 30px; padding: 0 10px; font-size: var(--fs-xs); }
-.trend { display: block; width: 100%; height: auto; overflow: visible; }
-.trend__area { fill: var(--accent-soft); }
 
 /* Moyennes par catégorie : un appui ouvre la catégorie pour ajuster son plafond */
 .avg-row { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 16px; text-align: left; color: inherit; }
@@ -295,3 +293,19 @@ button.check-row:active { background: var(--surface-2); }
 .avg-row__fill.is-warn { background: var(--amber); }
 .avg-row__cap { position: absolute; top: -3px; bottom: -3px; left: var(--value); width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text); }
 .avg-row__sub { font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* Salaire : niveau habituel puis augmentations */
+.raise-row { display: flex; align-items: center; gap: var(--sp-3); padding: 11px 16px; }
+.raise-row + .raise-row, .raise-row + .check-empty { border-top: 1px solid var(--border); }
+.raise-row__body { display: flex; flex-direction: column; flex: 1; min-width: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.raise-row__body small { font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); }
+.raise-row--head strong { font-size: var(--fs-lg); font-weight: 750; font-variant-numeric: tabular-nums; }
+
+/* Primes par année : barres horizontales, l'année en cours hachurée */
+.year-bar { display: grid; grid-template-columns: 40px minmax(0, 1fr) 72px; align-items: center; gap: var(--sp-2); padding: 4px 0; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.year-bar > span:first-child { color: var(--text-2); font-weight: 600; }
+.year-bar b { text-align: right; }
+.year-bar__track { height: 8px; border-radius: 0 4px 4px 0; background: var(--surface-2); }
+.year-bar__fill { display: block; height: 100%; width: var(--value); border-radius: 0 4px 4px 0; background: var(--accent); }
+.year-bar__fill.is-partial { background: repeating-linear-gradient(135deg, var(--accent) 0 3px, var(--accent-soft) 3px 6px); }
+.budget .trend-chips { margin-top: 6px; }

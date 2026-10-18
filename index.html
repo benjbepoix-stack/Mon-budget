@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Suivi de budget minimaliste : noter une dépense ou une rentrée, suivre quelques budgets, les charges fixes et le salaire.">
-  <meta name="theme-color" content="#16171c">
+  <meta name="theme-color" content="#11151c">
   <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
       var t = localStorage.getItem('budget_theme');
       if ((t !== 'light' && t !== 'dark') || (t === 'dark' && !localStorage.getItem('budget_theme_auto_v1'))) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       document.documentElement.dataset.theme = t;
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f4f4f7' : '#16171c');
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f1f3f6' : '#11151c');
       var pin = JSON.parse(localStorage.getItem('budget_pin') || 'null');
       if (pin && pin.hash) document.documentElement.classList.add('is-pin-locked');
     } catch (e) {}
@@ -38,6 +38,9 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/views/budget.css">
   <link rel="stylesheet" href="css/minimal.css">
+  <link rel="stylesheet" href="css/ardoise.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 
   <script type="module" src="js/main.js"></script>
 </head>
@@ -142,13 +145,13 @@
       </section>
 
       <section class="section">
-        <header class="section__head"><div><h2 class="section__title">Rentrées</h2><p class="card__sub" id="incomeSub"></p></div></header>
-        <div class="card card--list" id="incomeList"></div>
-        <div class="card trend-card">
-          <header class="trend-card__head"><h3 class="card__title">Salaire sur 12 mois</h3></header>
-          <div id="salaryChart"></div>
-          <div class="stats-grid" id="salaryStats"></div>
-        </div>
+        <header class="section__head"><div><h2 class="section__title">Salaire</h2><p class="card__sub" id="salarySub"></p></div></header>
+        <div class="card card--list" id="salaryList"></div>
+      </section>
+
+      <section class="section">
+        <header class="section__head"><div><h2 class="section__title">Primes par année</h2></div></header>
+        <div class="card" id="primeList"></div>
       </section>
 
       <section class="section">

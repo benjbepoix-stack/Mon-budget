@@ -11,7 +11,9 @@ Deux pages seulement, peu de chiffres : on ne note pas tout, on suit ce qui comp
 - **Suivre** (mois par mois) :
   - **Budgets suivis** : seulement les catégories qui ont un plafond. Case ✓ (ça tient), ! ambre (la projection dépasse), ! rouge (dépassé) ; courbe des dépenses cumulées, pointillé jusqu'à la **projection de fin de mois** (charges fixes de la catégorie comptées une fois, le reste extrapolé au rythme actuel), trait du plafond.
   - **Charges fixes** : liste à cocher des charges récurrentes du mois (prélevée le X / à venir), total par mois et par an ; **évolution** sur 12 mois (comparaison avec un an avant) ou **par année** (moyenne mensuelle, mois en cours incomplet non compté).
-  - **Rentrées** : rentrées du mois et revenus réguliers à venir ; **salaire sur 12 mois** (catégorie « Salaire »), dernier salaire, moyenne sur 12 mois, évolution sur un an.
+  - Sous chaque budget, deux **tendances** : ce mois face au mois précédent au même jour, et la moyenne mensuelle depuis janvier face à celle de l'an dernier (hausse en ambre, baisse en vert, toujours avec ▲ / ▼).
+  - **Salaire** (catégorie « Salaire ») : salaire habituel et liste des **augmentations** ; les petites variations mensuelles sont ignorées (un changement compte s'il dépasse 1,5 % deux mois de suite).
+  - **Primes par année** (catégorie « Prime ») : total des 3 dernières années, année en cours hachurée, et ce que l'an dernier avait reçu après ce mois-ci.
   - **Moyennes par catégorie** : dépense moyenne par mois sur les 6 derniers mois complets (hors charges fixes), avec le plafond actuel et le mois le plus haut ; un appui ouvre la catégorie pour **ajuster le plafond**.
 - **Charges et revenus récurrents** : ajoutés automatiquement au jour prévu (Réglages › Charges & revenus récurrents).
 - **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien) — lecture seule, un appui ouvre l'app d'origine. Publiées par ces apps, avec le même compte, sous `users/<uid>/budget/linked/garage` et `…/linked/maison` ; Mon budget les lit dans son propre nœud et ne les réécrit jamais. Ne pas les ressaisir à la main.
@@ -29,7 +31,7 @@ Deux pages seulement, peu de chiffres : on ne note pas tout, on suit ce qui comp
 index.html                  Squelette HTML
 manifest.webmanifest        Manifeste PWA (icônes icon-*.png, apple-touch-icon.png)
 database.rules.json         Règles fermées à publier sur l'ANCIENNE base publique (voir « Sécurité »)
-css/                        tokens, theme (ambiance Sauge), base, composants, mise en page, views/budget.css
+css/                        tokens, theme, base, composants, mise en page, views/budget.css, ardoise (couleurs gris bleu et cobalt, chargé en dernier)
 js/
   main.js                   Point d'entrée
   config/firebase-config.js Configuration Firebase (projet commun test-e27e9) + adresse de l'ancienne base
@@ -91,4 +93,4 @@ python3 -m http.server 8080   # puis http://localhost:8080
 GitHub Pages : **Settings → Pages → Deploy from a branch → `main` / root**.
 
 ## Style
-Style minimaliste commun aux apps (anthracite, cartes pleines), couleur **Sauge**. Logo : pile de pièces et euro avec la ligne d'horizon commune aux logos des apps.
+Style minimaliste commun aux apps (cartes pleines), couleurs **Ardoise** (gris bleu et cobalt, police IBM Plex Sans). Logo : pile de pièces et euro avec la ligne d'horizon commune aux logos des apps.

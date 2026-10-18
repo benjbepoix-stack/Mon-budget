@@ -3,7 +3,7 @@ import { $, esc, uid } from '../core/utils.js';
 import { todayKey } from '../core/dates.js';
 import { toCents, formatEUR, formatEURRound, sum } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { categoriesByUsage, categoryById, monthKey, monthTransactions } from '../core/selectors.js';
+import { categoriesByUsage, categoryById, monthKey, monthTransactions, salaryCategoryIds, primeCategoryIds, salaryHistory } from '../core/selectors.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { toast } from '../ui/toast.js';
 import { icon } from '../ui/icons.js';
@@ -39,7 +39,14 @@ function renderPick({ keep = true } = {}) {
   if (type === 'income') {
     $('#notePickLabel').textContent = 'Quelle rentrée ?';
     const current = cats.some(c => c.id === previous) ? previous : cats[0]?.id;
-    html = cats.map(c => pickRow(c.id, `${c.icon} ${c.name}`, '', c.id === current)).join('');
+    // Rappels : salaire habituel, primes déjà reçues dans l'année.
+    const salary = salaryCategoryIds();
+    const primes = primeCategoryIds();
+    const usual = salaryHistory().usual;
+    const year = key.slice(0, 4);
+    const primeTotal = sum(state.transactions.filter(t => t.type === 'income' && primes.has(t.categoryId) && t.date.startsWith(year)));
+    const hint = c => (salary.has(c.id) && usual ? `habituel ≈ ${esc(formatEURRound(usual))}` : primes.has(c.id) && primeTotal ? `déjà ${esc(formatEURRound(primeTotal))} en ${year}` : '');
+    html = cats.map(c => pickRow(c.id, `${c.icon} ${c.name}`, hint(c), c.id === current)).join('');
   } else {
     $('#notePickLabel').textContent = 'Dans quel budget ?';
     const tracked = cats.filter(c => c.budget);

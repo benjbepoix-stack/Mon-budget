@@ -1,0 +1,35 @@
+/* =========================================================
+   ARDOISE — gris bleu et cobalt, chargé en dernier.
+   Remplace l'ambiance Sauge : fonds ardoise, accent cobalt plein,
+   ambre pour les hausses de dépense, vert pour les baisses.
+   ========================================================= */
+:root {
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --bg: #11151c; --bg-2: #11151c;
+  --surface: #1a1f29; --surface-solid: #1a1f29; --surface-2: #222835; --surface-3: #2c3343; --field: #222835;
+  --border: rgba(255, 255, 255, .06); --border-strong: rgba(255, 255, 255, .12);
+  --text: #eef1f7; --text-2: #a2a9b8; --text-3: #6e7686;
+  --accent: #86a2f6; --accent-2: #7090f2; --accent-ink: #0d1530; --accent-soft: rgba(134, 162, 246, .14);
+  --gradient-accent: linear-gradient(#86a2f6, #86a2f6); --shadow-accent: none;
+  --good: #5cc59a; --amber: #e3a64a; --amber-soft: rgba(227, 166, 74, .14); --danger: #f07a7a; --danger-soft: rgba(240, 122, 122, .14);
+}
+:root[data-theme="light"] {
+  --bg: #f1f3f6; --bg-2: #f1f3f6;
+  --surface: #ffffff; --surface-solid: #ffffff; --surface-2: #eceff5; --surface-3: #e2e6ee; --field: #eef1f6;
+  --border: rgba(20, 26, 38, .08); --border-strong: rgba(20, 26, 38, .14);
+  --text: #141a26; --text-2: #5b6272; --text-3: #8a91a0;
+  --accent: #2f5bd3; --accent-2: #2650c2; --accent-ink: #ffffff; --accent-soft: rgba(47, 91, 211, .1);
+  --gradient-accent: linear-gradient(#2f5bd3, #2f5bd3); --shadow-accent: none;
+  --good: #1f8a5b; --amber: #b86b00; --amber-soft: rgba(184, 107, 0, .1); --danger: #c8373a; --danger-soft: rgba(200, 55, 58, .1);
+}
+.topbar__kicker { background: none; color: var(--accent); }
+.btn--primary { color: var(--accent-ink); }
+
+/* Pastilles de tendance : ▲ / ▼ toujours avec la couleur */
+.trend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.trend-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); font-size: 11.5px; font-weight: 600; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.trend-chip i { font-style: normal; font-size: 10px; }
+.trend-chip.is-up i { color: var(--amber); }
+.trend-chip.is-down i, .trend-chip.is-gain i { color: var(--good); }
+.trend-chip.is-flat i { color: var(--text-3); }
