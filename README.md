@@ -93,4 +93,4 @@ python3 -m http.server 8080   # puis http://localhost:8080
 GitHub Pages : **Settings → Pages → Deploy from a branch → `main` / root**.
 
 ## Style
-Style minimaliste commun aux apps (cartes pleines), couleurs **Ardoise** (gris bleu et cobalt, police IBM Plex Sans). Logo : pile de pièces et euro avec la ligne d'horizon commune aux logos des apps.
+Style minimaliste commun aux apps (cartes pleines), couleurs **Ardoise** (gris bleu et cobalt, police IBM Plex Sans). Logo : la courbe d'un budget (trait plein, puis pointillé jusqu'à la fin du mois) sous le trait du plafond, sur fond clair.
