@@ -3,7 +3,7 @@ import { $, esc, uid } from '../core/utils.js';
 import { todayKey } from '../core/dates.js';
 import { toCents, formatEUR, formatEURRound, sum } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { categoriesByUsage, categoryById, monthKey, shiftMonth, monthTransactions, salaryCategoryIds, primeCategoryIds, salaryHistory } from '../core/selectors.js';
+import { categoriesByUsage, categoryById, monthKey, shiftMonth, monthTransactions, allTransactions, salaryCategoryIds, primeCategoryIds, salaryHistory } from '../core/selectors.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { toast } from '../ui/toast.js';
 import { icon } from '../ui/icons.js';
@@ -67,8 +67,8 @@ let showAll = false;
 
 /** Dernières saisies ; « Voir plus » : tout le mois en cours et le mois précédent, par mois. */
 function renderRecent() {
-  // Même jour : la dernière notée en tête (tri stable sur la liste inversée).
-  const list = [...state.transactions]
+  // Même jour : la dernière notée en tête (tri stable sur la liste inversée). Avec les dépenses reliées.
+  const list = [...allTransactions()]
     .reverse()
     .filter(t => t.type !== 'saving')
     .sort((a, b) => b.date.localeCompare(a.date));

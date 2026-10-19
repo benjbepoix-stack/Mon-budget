@@ -15,7 +15,7 @@ import { generateRecurring } from './features/recurring.js';
 import { initMonthNavs, initEmojiPickers } from './views/common.js';
 import { initNote, renderNote } from './views/note.js';
 import { initTrack, renderTrack } from './views/track.js';
-import { initQuickAdd, openTx } from './views/quickadd.js';
+import { initQuickAdd, openTx, openLinked } from './views/quickadd.js';
 import { initSettings, renderSettings } from './views/settings.js';
 
 const VIEWS = {
@@ -128,6 +128,8 @@ function init() {
     if (link) switchView(link.dataset.viewLink);
     const tx = e.target.closest('[data-tx]');
     if (tx) openTx({ id: tx.dataset.tx });
+    const linked = e.target.closest('[data-linked]');
+    if (linked) openLinked({ id: linked.dataset.linked });
   });
 
   let initial = 'noteView';

@@ -37,8 +37,18 @@ export function categoriesByUsage(kind, { days = 90, now = new Date() } = {}) {
     .map(x => x.c);
 }
 
-/** Opérations saisies ici + dépenses reliées (Mon Garage, Ma Maison), en lecture seule. */
-export const allTransactions = () => (state.linked?.length ? [...state.transactions, ...state.linked].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)) : state.transactions);
+/** Dépenses reliées (Mon Garage, Ma Maison), sauf celles retirées du budget. */
+export function linkedTransactions() {
+  if (!state.linked?.length) return [];
+  const hidden = new Set(state.hidden?.map(h => h.id));
+  return hidden.size ? state.linked.filter(t => !hidden.has(t.id)) : state.linked;
+}
+
+/** Opérations saisies ici + dépenses reliées, en lecture seule. */
+export function allTransactions() {
+  const linked = linkedTransactions();
+  return linked.length ? [...state.transactions, ...linked].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)) : state.transactions;
+}
 export const monthTransactions = key => allTransactions().filter(t => t.date.startsWith(key));
 
 /** Revenus, dépenses (dont frais fixes = charges récurrentes), épargne d'un mois. */
