@@ -5,7 +5,7 @@ HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance p
 
 ## Fonctionnalités
 
-Deux pages seulement, peu de chiffres : on ne note pas tout, on suit ce qui compte.
+Trois pages, peu de chiffres : on ne note pas tout, on suit ce qui compte.
 
 - **Noter** : un seul gros bouton **« Ajouter »**, puis un fil d'une question par écran : « Dépense ou rentrée ? », « Pour quoi ? » (les budgets suivis avec ce qu'il reste, puis « Autre catégorie… » ; en Rentrée : Salaire avec le montant habituel, Prime avec le total de l'année…), « Combien ? » (pavé numérique, ce qui restera dans le budget, date, note et **« Chaque mois »** en options), puis « C'est noté » avec la jauge du budget. Retour et Échap reviennent d'une question. Dernières saisies sous le bouton ; un appui ouvre l'édition. Catégories triées par **nombre d'utilisations sur 90 jours**.
 - **Suivre** (mois par mois) :
@@ -15,6 +15,7 @@ Deux pages seulement, peu de chiffres : on ne note pas tout, on suit ce qui comp
   - **Salaire** (catégorie « Salaire ») : salaire habituel et liste des **augmentations** ; les petites variations mensuelles sont ignorées (un changement compte s'il dépasse 1,5 % deux mois de suite).
   - **Primes par année** (catégorie « Prime ») : total des 3 dernières années, année en cours hachurée, et ce que l'an dernier avait reçu après ce mois-ci.
   - **Moyennes par catégorie** : dépense moyenne par mois sur les 6 derniers mois complets (hors charges fixes), avec le plafond actuel et le mois le plus haut ; un appui ouvre la catégorie pour **ajuster le plafond**.
+- **Prévoir** (troisième onglet) : liste des achats et dépenses à venir (taxe foncière, impôts, nouvelle cafetière, cadeau d'anniversaire…), avec montant estimé, date, périodicité (une fois, chaque mois, trimestre, année) et catégorie, tous facultatifs sauf le nom (une dépense qui revient a une date). Total des échéances des 3 prochains mois, puis « Bientôt » (datées, avec « dans 27 jours » ou « en retard ») et « Envies, sans date ». Un **rappel** apparaît en haut de « Noter » et en pastille sur l'onglet 1 semaine à 2 mois avant la date (1 mois par défaut). Cocher une ligne propose de **noter la dépense** dans le budget (montant payé, date, catégorie) ; une dépense qui revient passe à l'échéance suivante avec le montant payé, une dépense ponctuelle disparaît. Stockées sous `users/<uid>/budget/plans/<id>`, et dans l'export JSON.
 - **Charges et revenus récurrents** : ajoutés automatiquement au jour prévu (Réglages › Charges & revenus récurrents).
 - **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien), aussi dans les dernières saisies. Un appui propose d'ouvrir l'app d'origine (où elles se modifient) ou de **retirer la dépense du budget** : elle reste dans l'app d'origine, et son identifiant est noté sous `users/<uid>/budget/hidden` pour ne plus la compter. Publiées par ces apps, avec le même compte, sous `users/<uid>/budget/linked/garage` et `…/linked/maison` ; Mon budget les lit dans son propre nœud et ne les réécrit jamais. Ne pas les ressaisir à la main.
 - **Catégories** préremplies et modifiables (icône, nom, plafond : seules celles qui en ont un sont suivies).
@@ -39,7 +40,7 @@ js/
   services/                 firebase (compte + synchro), storage
   features/                 auth (connexion, Réglages › Compte), pin (verrou facultatif), recurring (génération automatique)
   ui/                       icônes, modales, toasts, thème, graphiques
-  views/                    note (Noter), track (Suivre), quickadd (édition d'une opération), settings
+  views/                    note (Noter), plan (Prévoir), track (Suivre), quickadd (édition d'une opération), settings
 ```
 
 Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).
@@ -50,7 +51,7 @@ Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).
 
 ## Compte et synchronisation
 
-- **Un seul compte pour les 5 apps** : Mon budget utilise le projet Firebase de Mon Garage et Ma Maison (`test-e27e9`, même `firebase-config.js`). Les données sont sous `users/<uid>/budget` : `theme`, `categories/<id>`, `transactions/<id>`, `recurring/<id>`, `goals/<id>`. Le même nœud reçoit `linked/garage` (écrit par Mon Garage), `linked/maison` (Ma Maison) et `migrated` (marque du transfert) : Mon budget les lit et ne les réécrit jamais.
+- **Un seul compte pour les 5 apps** : Mon budget utilise le projet Firebase de Mon Garage et Ma Maison (`test-e27e9`, même `firebase-config.js`). Les données sont sous `users/<uid>/budget` : `theme`, `categories/<id>`, `transactions/<id>`, `recurring/<id>`, `goals/<id>`, `plans/<id>`. Le même nœud reçoit `linked/garage` (écrit par Mon Garage), `linked/maison` (Ma Maison) et `migrated` (marque du transfert) : Mon budget les lit et ne les réécrit jamais.
 - **Pas d'écran bloquant au démarrage** : l'app s'affiche tout de suite avec les données de l'appareil. Si Firebase répond « pas de compte », une feuille de connexion s'ouvre par-dessus (e-mail, mot de passe, « Mot de passe oublié ? », « Créer un compte »), avec **« Continuer sans compte »** : données sur l'appareil seulement, pas de synchronisation, pastille « Local » (choix gardé jusqu'à la fermeture de l'app ; la feuille revient au lancement suivant, et l'on peut se connecter depuis Réglages › Compte). Tant que la feuille attend une réponse, les opérations récurrentes ne sont pas générées : après la connexion, elles le sont sur les données du compte (pas sur une copie peut-être ancienne de l'appareil). Firebase injoignable : pas de feuille, mode local.
 - **Code PIN et connexion** ne se superposent jamais : si un code existe, il est demandé d'abord ; la feuille de connexion (si nécessaire) s'ouvre après le déverrouillage.
 - **Session partagée** : les apps sont sur la même origine (`benjbepoix-stack.github.io`) ; dans un même navigateur, être connecté dans Mon Garage suffit. Sur iPhone, chaque app installée sur l'écran d'accueil a son propre stockage : une connexion par app, une seule fois.

@@ -95,6 +95,32 @@ export function normalizeGoals(raw) {
 }
 
 /*
+ * Page « Prévoir » : achats et dépenses à venir. Date facultative ; une dépense qui revient
+ * (mois, trimestre, année) a forcément une date, avancée à l'échéance suivante une fois payée.
+ * Rappel : affiché sur « Noter » `remind` jours avant la date.
+ */
+export const PLAN_REPEATS = { none: 'une fois', month: 'chaque mois', quarter: 'chaque trimestre', year: 'chaque année' };
+export const PLAN_REMINDS = [7, 14, 30, 60];
+
+export function normalizePlans(raw) {
+  return asArray(raw)
+    .filter(isObj)
+    .map(p => {
+      const date = isDateKey(p.date) ? p.date : '';
+      return {
+        id: str(p.id, 60) || uid(),
+        name: str(p.name, 60).trim(),
+        amount: cents(p.amount),
+        date,
+        repeat: date && PLAN_REPEATS[p.repeat] ? p.repeat : 'none',
+        remind: PLAN_REMINDS.includes(p.remind) ? p.remind : 30,
+        categoryId: str(p.categoryId, 60)
+      };
+    })
+    .filter(p => p.name);
+}
+
+/*
  * Dépenses reliées (lecture seule) : publiées par Mon Garage et Ma Maison sous
  * budget/linked/<app> pour éviter la double saisie des entretiens. Comptées
  * comme des dépenses, modifiables uniquement dans l'app d'origine.

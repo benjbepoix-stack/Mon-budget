@@ -2,7 +2,7 @@
 import { $, $$, esc, uid, slugify } from '../core/utils.js';
 import { formatEUR, toCents, centsToInput } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { COLOR_SLOTS, normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeHidden, isMonth } from '../core/schema.js';
+import { COLOR_SLOTS, normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeHidden, normalizePlans, isMonth } from '../core/schema.js';
 import { categoryById, monthKey } from '../core/selectors.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { openSheet, closeSheet, confirmDialog, isOpen } from '../ui/dialog.js';
@@ -197,7 +197,7 @@ async function onRecurringDelete() {
 
 /* ---------- Sauvegarde ---------- */
 function exportData() {
-  const data = { app: 'mon-budget', version: 1, exportedAt: new Date().toISOString(), categories: state.categories, transactions: state.transactions, recurring: state.recurring, goals: state.goals, hidden: state.hidden };
+  const data = { app: 'mon-budget', version: 1, exportedAt: new Date().toISOString(), categories: state.categories, transactions: state.transactions, recurring: state.recurring, goals: state.goals, hidden: state.hidden, plans: state.plans };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
@@ -225,6 +225,8 @@ async function importData(file) {
   };
   // Dépenses reliées retirées : absentes des anciennes sauvegardes, gardées telles quelles dans ce cas.
   if (data.hidden !== undefined) next.hidden = normalizeHidden(data.hidden);
+  // Dépenses à prévoir : idem pour les sauvegardes antérieures à la page « Prévoir ».
+  if (data.plans !== undefined) next.plans = normalizePlans(data.plans);
   const ok = await confirmDialog({
     title: 'Remplacer vos données ?',
     message: `La sauvegarde contient ${next.transactions.length} opération(s) et ${next.goals.length} objectif(s). Les données actuelles seront remplacées sur tous vos appareils.`,
