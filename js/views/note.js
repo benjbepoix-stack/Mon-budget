@@ -3,12 +3,12 @@ import { $, esc, uid } from '../core/utils.js';
 import { todayKey } from '../core/dates.js';
 import { toCents, formatEUR, formatEURRound, sum } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { categoriesByUsage, categoryById, monthKey, monthTransactions, salaryCategoryIds, primeCategoryIds, salaryHistory } from '../core/selectors.js';
+import { categoriesByUsage, categoryById, monthKey, shiftMonth, monthTransactions, salaryCategoryIds, primeCategoryIds, salaryHistory } from '../core/selectors.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { toast } from '../ui/toast.js';
 import { icon } from '../ui/icons.js';
 import { amountRules } from './quickadd.js';
-import { txRowHTML } from './common.js';
+import { txRowHTML, monthLabel } from './common.js';
 
 const OTHER = '__other';
 const RECENT = 6;
@@ -63,16 +63,40 @@ function renderPick({ keep = true } = {}) {
   $('#notePick').innerHTML = html;
 }
 
+let showAll = false;
+
+/** Dernières saisies ; « Voir plus » : tout le mois en cours et le mois précédent, par mois. */
 function renderRecent() {
   // Même jour : la dernière notée en tête (tri stable sur la liste inversée).
   const list = [...state.transactions]
     .reverse()
     .filter(t => t.type !== 'saving')
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, RECENT);
-  $('#noteRecent').innerHTML = list.length
-    ? list.map(t => txRowHTML(t, { showDate: true })).join('')
-    : `<div class="empty-state"><span class="empty-state__icon">${icon('edit', 22)}</span><p>Rien de noté pour l’instant.</p></div>`;
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const current = monthKey();
+  const months = [current, shiftMonth(current, -1)];
+  const extended = list.filter(t => months.includes(t.date.slice(0, 7)));
+  const host = $('#noteRecent');
+  const more = $('#noteMore');
+  if (!list.length) {
+    host.innerHTML = `<div class="empty-state"><span class="empty-state__icon">${icon('edit', 22)}</span><p>Rien de noté pour l’instant.</p></div>`;
+    more.hidden = true;
+    return;
+  }
+  more.hidden = extended.length <= RECENT;
+  more.textContent = showAll ? 'Voir moins' : `Voir plus · ${extended.length} saisies sur 2 mois`;
+  more.setAttribute('aria-expanded', String(showAll));
+  if (!showAll || more.hidden) {
+    host.innerHTML = list.slice(0, RECENT).map(t => txRowHTML(t, { showDate: true })).join('');
+    return;
+  }
+  host.innerHTML = months
+    .map(m => {
+      const rows = extended.filter(t => t.date.startsWith(m));
+      return `<div class="recent-month"><span>${esc(monthLabel(m))}</span><span>${rows.length} saisie${rows.length > 1 ? 's' : ''}</span></div>${
+        rows.length ? rows.map(t => txRowHTML(t, { showDate: true })).join('') : '<p class="check-empty">Rien de noté ce mois-là.</p>'
+      }`;
+    })
+    .join('');
 }
 
 export function renderNote() {
@@ -117,6 +141,10 @@ function onSubmit(e) {
 }
 
 export function initNote() {
+  $('#noteMore').addEventListener('click', () => {
+    showAll = !showAll;
+    renderRecent();
+  });
   const f = form();
   f.addEventListener('submit', onSubmit);
   f.addEventListener('change', e => {
