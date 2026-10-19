@@ -197,6 +197,20 @@
     </div>
   </div>
 
+  <!-- Dépense reliée (Mon Garage, Ma Maison) -->
+  <div class="sheet-backdrop" id="linkedSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="linkedTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="linkedTitle">Dépense reliée</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <div class="form">
+        <div class="linked-sum" id="linkedSum"></div>
+        <p class="linked-note" id="linkedNote"></p>
+        <a class="btn btn--ghost btn--block linked-open" id="linkedOpen" href="#"><span data-icon="link" data-size="18"></span><span id="linkedOpenLabel">Ouvrir l’app</span></a>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="linkedRemove"><span data-icon="trash" data-size="18"></span><span>Retirer du budget</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Réglages -->
   <div class="sheet-backdrop" id="settingsSheet" hidden>
     <div class="sheet sheet--tall" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">

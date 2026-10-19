@@ -119,6 +119,15 @@ export function normalizeLinked(raw) {
   return out.sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 }
 
+/** Dépenses reliées retirées du budget (elles restent dans l'app d'origine) : { id: 'link-…', date }. */
+export function normalizeHidden(raw) {
+  const list = asArray(raw)
+    .filter(isObj)
+    .map(h => ({ id: str(h.id, 120), date: isDateKey(h.date) ? h.date : '' }))
+    .filter(h => h.id.startsWith('link-'));
+  return [...new Map(list.map(h => [h.id, h])).values()];
+}
+
 /** Thème choisi : 'auto' (suit le réglage clair / sombre de l'appareil, par défaut), 'dark' ou 'light'. */
 export const THEMES = ['auto', 'dark', 'light'];
 export const normalizeTheme = v => (THEMES.includes(v) ? v : 'auto');

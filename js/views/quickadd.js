@@ -2,11 +2,13 @@
 import { $, esc } from '../core/utils.js';
 import { toCents, centsToInput, formatEUR } from '../core/money.js';
 import { state, commit } from '../core/store.js';
-import { categoriesByUsage } from '../core/selectors.js';
+import { categoriesByUsage, linkedTransactions } from '../core/selectors.js';
+import { formatKey } from '../core/dates.js';
+import { LINKED_SOURCES } from '../core/schema.js';
 import { rules, validate, showErrors, clearErrors, formValues } from '../core/validation.js';
 import { openSheet, closeSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
-import { slotColor } from './common.js';
+import { slotColor, describe } from './common.js';
 
 export const MAX_AMOUNT = 100000000; // 1 000 000,00 €
 const form = () => $('#txForm');
@@ -90,7 +92,42 @@ async function onDelete() {
   toast('Opération supprimée');
 }
 
+/* ---------- Dépense reliée : ouvrir l'app d'origine, ou la retirer du budget ---------- */
+let linkedId = null;
+
+export function openLinked({ id }) {
+  const t = linkedTransactions().find(x => x.id === id);
+  if (!t) return;
+  const src = LINKED_SOURCES[t.linked];
+  const d = describe(t);
+  linkedId = t.id;
+  $('#linkedTitle').textContent = `Dépense de ${src.name}`;
+  $('#linkedSum').innerHTML = `<span class="tx__icon" style="--c:${d.color}" aria-hidden="true">${esc(d.icon)}</span><span class="linked-sum__body"><strong>${esc(d.title)}</strong><small>${esc(formatKey(t.date, { day: 'numeric', month: 'long', year: 'numeric' }))} · ${esc(d.sub)}</small></span><span class="tx__amount tx__amount--expense">−${esc(formatEUR(t.amount))}</span>`;
+  $('#linkedNote').textContent = `Ajoutée automatiquement depuis ${src.name}. Elle se modifie là-bas ; ici, vous pouvez la retirer de vos budgets.`;
+  $('#linkedOpen').href = src.url;
+  $('#linkedOpenLabel').textContent = `Ouvrir ${src.name}`;
+  openSheet('linkedSheet', { focus: false });
+}
+
+async function onRemoveLinked() {
+  const t = linkedTransactions().find(x => x.id === linkedId);
+  if (!t) return closeSheet('linkedSheet');
+  const src = LINKED_SOURCES[t.linked];
+  const ok = await confirmDialog({
+    title: 'Retirer cette dépense du budget ?',
+    message: `Elle ne comptera plus dans vos budgets. Elle reste enregistrée dans ${src.name}.`,
+    confirmLabel: 'Retirer',
+    danger: true
+  });
+  if (!ok) return;
+  state.hidden.push({ id: t.id, date: t.date });
+  commit('hidden');
+  closeSheet('linkedSheet');
+  toast('Dépense retirée du budget');
+}
+
 export function initQuickAdd() {
+  $('#linkedRemove').addEventListener('click', onRemoveLinked);
   const f = form();
   f.addEventListener('submit', onSubmit);
   f.addEventListener('change', e => {

@@ -25,7 +25,7 @@ const LEGACY_TIMEOUT = 8000;
 const WRITE_DELAY = 250;
 const NO_ACCOUNT = 'Sans compte : connectez-vous dans Réglages › Compte.';
 /** Tranches du budget : les seules écrites d'ici (pas `linked` ni `migrated`). */
-const SLICES = ['theme', 'categories', 'transactions', 'recurring', 'goals'];
+const SLICES = ['theme', 'categories', 'transactions', 'recurring', 'goals', 'hidden'];
 const COLLECTIONS = SLICES.filter(s => s !== 'theme');
 /** Apps qui publient leurs dépenses sous `linked/<app>`. */
 const LINK_SOURCES = ['garage', 'maison'];
