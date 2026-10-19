@@ -82,26 +82,10 @@
 
     <!-- ================= NOTER : une dépense ou une rentrée ================= -->
     <section id="noteView" class="view">
-      <form class="form note card" id="noteForm" novalidate>
-        <div class="segmented segmented--types" role="radiogroup" aria-label="Type">
-          <label><input type="radio" name="type" value="expense" checked><span>Dépense</span></label>
-          <label><input type="radio" name="type" value="income"><span>Rentrée</span></label>
-        </div>
-        <fieldset class="field pick">
-          <legend class="field__label" id="notePickLabel">Où part cet argent ?</legend>
-          <div class="tiles" id="notePick"></div>
-        </fieldset>
-        <div class="field amount-field">
-          <label class="field__label" for="noteAmount">Montant</label>
-          <div class="amount-input"><input class="input" id="noteAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" enterkeyhint="done"><span>€</span></div>
-        </div>
-        <div class="form-grid">
-          <div class="field"><label class="field__label" for="noteDate">Date</label><input class="input" id="noteDate" type="date" name="date" required></div>
-          <div class="field"><label class="field__label" for="noteNote">Note <span class="field__opt">(facult.)</span></label><input class="input" id="noteNote" name="note" maxlength="200" placeholder="Ex. Carrefour" autocomplete="off"></div>
-        </div>
-        <label class="toggle"><input type="checkbox" name="repeat"><span class="toggle__track"></span><span>Chaque mois <small>(charge fixe ou salaire : saisi automatiquement)</small></span></label>
-        <button type="submit" class="btn btn--primary btn--lg btn--block">Enregistrer</button>
-      </form>
+      <div class="note-home">
+        <button type="button" class="note-add" id="noteStart"><span data-icon="plus" data-size="56"></span><span>Ajouter</span></button>
+        <p class="note-home__hint">Une dépense ou une rentrée, en trois questions.</p>
+      </div>
 
       <section class="section">
         <header class="section__head"><h2 class="section__title">Dernières saisies</h2></header>
@@ -161,6 +145,18 @@
       </section>
     </section>
   </main>
+
+  <!-- ================= FIL DE SAISIE : une question par écran ================= -->
+  <div class="flow" id="flow" role="dialog" aria-modal="true" aria-labelledby="flowTitle" hidden>
+    <div class="flow__inner">
+      <header class="flow__head">
+        <button type="button" class="icon-btn flow__back" id="flowBack" aria-label="Retour"><span data-icon="chevronLeft"></span></button>
+        <div class="flow__dots" id="flowDots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <span class="flow__tag" id="flowTag"></span>
+      </header>
+      <div class="flow__body" id="flowBody"></div>
+    </div>
+  </div>
 
   <!-- ================= FEUILLES ================= -->
 
