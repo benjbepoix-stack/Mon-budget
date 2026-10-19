@@ -322,3 +322,23 @@ button.check-row:active { background: var(--surface-2); }
 .linked-sum__body small { color: var(--text-2); }
 .linked-note { margin: 0; color: var(--text-2); font-size: 0.875rem; line-height: 1.45; }
 .linked-open { text-decoration: none; }
+
+/* Page Noter : une tuile par budget (ce qui reste, jauge), puis le montant */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 112px; padding: 14px; border-radius: var(--r-md); background: var(--surface-2); border: 2px solid transparent; cursor: pointer; transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); -webkit-tap-highlight-color: transparent; }
+.tile input { position: absolute; opacity: 0; pointer-events: none; }
+.tile:has(input:checked) { border-color: var(--accent); background: var(--surface-solid); }
+.tile:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tile__name { font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile__big { font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.tile__sub { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+.tile.is-over .tile__big, .tile.is-over .tile__sub { color: var(--amber); }
+.tile__bar { display: block; height: 6px; margin-top: auto; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.tile__bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width var(--dur-fast) var(--ease); }
+.tile.is-over .tile__bar > span { background: var(--amber); }
+.tile--other { grid-column: 1 / -1; min-height: 0; border: 2px dashed var(--border-strong); background: transparent; gap: 10px; }
+.tile--other:has(input:checked) { border-style: solid; }
+.tile__other-head { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.tile--other .pick__select { margin: 0; width: 100%; }
+.tiles > .pick__hint { grid-column: 1 / -1; border: 0; padding: 0; }
+.tiles .field-error { grid-column: 1 / -1; }

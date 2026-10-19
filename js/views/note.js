@@ -14,19 +14,26 @@ const OTHER = '__other';
 const RECENT = 6;
 const form = () => $('#noteForm');
 
-const pickRow = (value, title, sub, checked) =>
-  `<label class="pick__row"><input type="radio" name="pick" value="${esc(value)}" ${checked ? 'checked' : ''}><span class="pick__dot" aria-hidden="true"></span><span class="pick__body"><span>${esc(title)}</span>${sub ? `<small>${sub}</small>` : ''}</span></label>`;
+/** Une tuile (bouton radio) : nom, valeur en gros, précision, jauge facultative. */
+const tile = ({ value, name, big = '', sub = '', pct = null, over = false, checked = false }) =>
+  `<label class="tile${over ? ' is-over' : ''}"><input type="radio" name="pick" value="${esc(value)}" ${checked ? 'checked' : ''}><span class="tile__name">${esc(name)}</span>${big ? `<span class="tile__big" data-tile-big>${esc(big)}</span>` : ''}${sub ? `<small class="tile__sub" data-tile-sub>${sub}</small>` : ''}${pct === null ? '' : `<span class="tile__bar" aria-hidden="true"><span style="width:${pct}%"></span></span>`}</label>`;
 
-/** Ce qui reste dans un budget sur le mois de la date saisie. */
-function remaining(c, key) {
-  const spent = sum(monthTransactions(key).filter(t => t.type === 'expense' && t.categoryId === c.id));
+/** Dépensé dans un budget sur le mois de la date saisie. */
+const spentIn = (c, key) => sum(monthTransactions(key).filter(t => t.type === 'expense' && t.categoryId === c.id));
+
+/** Tuile d'un budget suivi : ce qui reste (ou le dépassement), et ce qui restera avec le montant saisi. */
+function budgetTile(c, key, checked, typed) {
+  const spent = spentIn(c, key) + (checked ? typed : 0);
   const left = c.budget - spent;
-  return left >= 0 ? `reste ${esc(formatEURRound(left))}` : `<span class="is-over">dépassé de ${esc(formatEURRound(-left))}</span>`;
+  const after = checked && typed > 0;
+  const big = left >= 0 ? formatEURRound(left) : `−${formatEURRound(-left)}`;
+  const sub = left >= 0 ? `${after ? 'resteront' : 'restent'} sur ${esc(formatEURRound(c.budget))}` : `${after ? 'dépassera' : 'dépassé'} · plafond ${esc(formatEURRound(c.budget))}`;
+  return tile({ value: c.id, name: `${c.icon} ${c.name}`, big, sub, pct: Math.min(100, Math.round((spent / c.budget) * 100)), over: left < 0, checked });
 }
 
 /**
- * Dépense : les budgets suivis (les plus utilisés d'abord), puis « Hors budget » avec les autres
- * catégories dans une liste. Rentrée : les catégories de revenus.
+ * Dépense : une tuile par budget suivi (les plus utilisés d'abord), puis « Hors budget » avec les autres
+ * catégories dans une liste. Rentrée : une tuile par catégorie de revenus.
  */
 function renderPick({ keep = true } = {}) {
   const f = form();
@@ -34,6 +41,7 @@ function renderPick({ keep = true } = {}) {
   const previous = keep ? f.querySelector('[name="pick"]:checked')?.value : null;
   const previousOther = keep ? f.elements.otherCategory?.value : null;
   const key = (f.elements.date.value || todayKey()).slice(0, 7);
+  const typed = toCents(f.elements.amount.value) || 0;
   const cats = categoriesByUsage(type);
   let html;
   if (type === 'income') {
@@ -46,17 +54,17 @@ function renderPick({ keep = true } = {}) {
     const year = key.slice(0, 4);
     const primeTotal = sum(state.transactions.filter(t => t.type === 'income' && primes.has(t.categoryId) && t.date.startsWith(year)));
     const hint = c => (salary.has(c.id) && usual ? `habituel ≈ ${esc(formatEURRound(usual))}` : primes.has(c.id) && primeTotal ? `déjà ${esc(formatEURRound(primeTotal))} en ${year}` : '');
-    html = cats.map(c => pickRow(c.id, `${c.icon} ${c.name}`, hint(c), c.id === current)).join('');
+    html = cats.map(c => tile({ value: c.id, name: `${c.icon} ${c.name}`, sub: hint(c), checked: c.id === current })).join('');
   } else {
-    $('#notePickLabel').textContent = 'Dans quel budget ?';
+    $('#notePickLabel').textContent = 'Où part cet argent ?';
     const tracked = cats.filter(c => c.budget);
     const others = cats.filter(c => !c.budget);
     const current = [...tracked.map(c => c.id), OTHER].includes(previous) ? previous : tracked[0]?.id || OTHER;
     const options = others.map(c => `<option value="${esc(c.id)}" ${c.id === previousOther ? 'selected' : ''}>${esc(c.icon)} ${esc(c.name)}</option>`).join('');
     html =
-      tracked.map(c => pickRow(c.id, `${c.icon} ${c.name}`, remaining(c, key), c.id === current)).join('') +
+      tracked.map(c => budgetTile(c, key, c.id === current, typed)).join('') +
       (others.length
-        ? `<div class="pick__other">${pickRow(OTHER, 'Hors budget', 'noté, mais pas suivi', current === OTHER)}<select class="input select pick__select" name="otherCategory" aria-label="Catégorie hors budget">${options}</select></div>`
+        ? `<div class="tile tile--other"><label class="tile__other-head"><input type="radio" name="pick" value="${OTHER}" ${current === OTHER ? 'checked' : ''}><span class="tile__name">Hors budget</span><small class="tile__sub">noté, mais pas suivi</small></label><select class="input select pick__select" name="otherCategory" aria-label="Catégorie hors budget">${options}</select></div>`
         : '') +
       (tracked.length ? '' : `<p class="pick__hint">Aucun budget suivi. <button type="button" class="link-btn" data-open-settings="categories">Choisir un budget à suivre</button></p>`);
   }
@@ -147,6 +155,10 @@ export function initNote() {
   });
   const f = form();
   f.addEventListener('submit', onSubmit);
+  // Montant saisi : la tuile choisie montre ce qui restera.
+  f.elements.amount.addEventListener('input', () => {
+    if (f.elements.type.value === 'expense') renderPick();
+  });
   f.addEventListener('change', e => {
     const name = e.target.name;
     if (name === 'type' || name === 'date') {
@@ -154,8 +166,16 @@ export function initNote() {
       f.querySelectorAll('.field-error').forEach(x => x.remove());
       renderPick({ keep: name === 'date' });
     }
-    if (name === 'pick') f.querySelector('.pick .field-error')?.remove();
+    if (name === 'pick') {
+      f.querySelector('.pick .field-error')?.remove();
+      renderPick();
+      // Le budget d'abord, puis le montant.
+      if (!f.elements.amount.value) f.elements.amount.focus({ preventScroll: true });
+    }
     // Choisir une catégorie hors budget coche la ligne « Hors budget ».
-    if (name === 'otherCategory') f.querySelector(`[name="pick"][value="${OTHER}"]`).checked = true;
+    if (name === 'otherCategory') {
+      f.querySelector(`[name="pick"][value="${OTHER}"]`).checked = true;
+      renderPick();
+    }
   });
 }

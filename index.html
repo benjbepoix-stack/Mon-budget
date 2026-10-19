@@ -87,14 +87,14 @@
           <label><input type="radio" name="type" value="expense" checked><span>Dépense</span></label>
           <label><input type="radio" name="type" value="income"><span>Rentrée</span></label>
         </div>
+        <fieldset class="field pick">
+          <legend class="field__label" id="notePickLabel">Où part cet argent ?</legend>
+          <div class="tiles" id="notePick"></div>
+        </fieldset>
         <div class="field amount-field">
           <label class="field__label" for="noteAmount">Montant</label>
           <div class="amount-input"><input class="input" id="noteAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" enterkeyhint="done"><span>€</span></div>
         </div>
-        <fieldset class="field pick">
-          <legend class="field__label" id="notePickLabel">Dans quel budget ?</legend>
-          <div class="pick__list" id="notePick"></div>
-        </fieldset>
         <div class="form-grid">
           <div class="field"><label class="field__label" for="noteDate">Date</label><input class="input" id="noteDate" type="date" name="date" required></div>
           <div class="field"><label class="field__label" for="noteNote">Note <span class="field__opt">(facult.)</span></label><input class="input" id="noteNote" name="note" maxlength="200" placeholder="Ex. Carrefour" autocomplete="off"></div>
