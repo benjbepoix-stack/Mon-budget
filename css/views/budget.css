@@ -309,3 +309,8 @@ button.check-row:active { background: var(--surface-2); }
 .year-bar__fill { display: block; height: 100%; width: var(--value); border-radius: 0 4px 4px 0; background: var(--accent); }
 .year-bar__fill.is-partial { background: repeating-linear-gradient(135deg, var(--accent) 0 3px, var(--accent-soft) 3px 6px); }
 .budget .trend-chips { margin-top: 6px; }
+
+/* Dernières saisies : « Voir plus » (mois en cours et précédent, par mois) */
+.note-more { margin-top: var(--sp-2); color: var(--accent); }
+.recent-month { display: flex; justify-content: space-between; padding: 10px 14px 6px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-2); background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.recent-month span:last-child { font-weight: 600; color: var(--text-3); }
