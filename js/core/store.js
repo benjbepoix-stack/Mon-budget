@@ -2,7 +2,7 @@
  * Store central : état en mémoire + persistance locale + synchronisation.
  *
  * Synchronisation fine : les collections (catégories, opérations, récurrences,
- * objectifs, dépenses reliées retirées) sont écrites élément par élément (`transactions/<id>`), jamais en
+ * objectifs, dépenses reliées retirées, dépenses à prévoir) sont écrites élément par élément (`transactions/<id>`), jamais en
  * bloc. Deux appareils qui ajoutent chacun une dépense hors ligne ne
  * s'écrasent donc pas : Firebase fusionne au niveau de chaque élément.
  *
@@ -13,7 +13,7 @@
  */
 import { readJSON, readText, write } from '../services/storage.js';
 import { sameJSON } from './utils.js';
-import { normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeTheme, normalizeLinked, normalizeHidden } from './schema.js';
+import { normalizeCategories, normalizeTransactions, normalizeRecurring, normalizeGoals, normalizeTheme, normalizeLinked, normalizeHidden, normalizePlans } from './schema.js';
 
 const LOCAL_KEYS = {
   categories: 'budget_categories',
@@ -21,6 +21,7 @@ const LOCAL_KEYS = {
   recurring: 'budget_recurring',
   goals: 'budget_goals',
   hidden: 'budget_hidden',
+  plans: 'budget_plans',
   theme: 'budget_theme'
 };
 const UNSYNCED_KEY = 'budget_unsynced';
@@ -34,10 +35,11 @@ const NORMALIZERS = {
   recurring: normalizeRecurring,
   goals: normalizeGoals,
   hidden: normalizeHidden,
+  plans: normalizePlans,
   theme: normalizeTheme
 };
 export const SLICES = Object.keys(LOCAL_KEYS);
-const COLLECTIONS = ['categories', 'transactions', 'recurring', 'goals', 'hidden'];
+const COLLECTIONS = ['categories', 'transactions', 'recurring', 'goals', 'hidden', 'plans'];
 
 export const state = {};
 const listeners = new Set();

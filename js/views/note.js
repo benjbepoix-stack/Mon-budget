@@ -12,6 +12,7 @@ import { toast } from '../ui/toast.js';
 import { icon } from '../ui/icons.js';
 import { MAX_AMOUNT } from './quickadd.js';
 import { txRowHTML, monthLabel } from './common.js';
+import { renderPlanReminders } from './plan.js';
 
 const RECENT = 6;
 const STEPS = ['type', 'category', 'amount'];
@@ -305,6 +306,7 @@ function renderRecent() {
 }
 
 export function renderNote() {
+  renderPlanReminders();
   renderRecent();
   // Données reçues pendant le fil (autre appareil) : les montants restants se mettent à jour.
   if (flow && isOpen() && flow.step === 'category') renderFlow();

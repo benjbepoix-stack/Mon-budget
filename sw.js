@@ -2,7 +2,7 @@
    serveur et garde la dernière version pour le mode hors ligne. L'app-shell est aussi
    pré-mis en cache à l'installation, pour qu'un tout premier lancement hors ligne (avant
    toute visite en ligne réussie) affiche l'app au lieu d'un écran blanc. */
-const CACHE = 'mon-budget-v14';
+const CACHE = 'mon-budget-v15';
 
 const PRECACHE_URLS = [
   './',
@@ -39,6 +39,7 @@ const PRECACHE_URLS = [
   './js/ui/toast.js',
   './js/views/common.js',
   './js/views/note.js',
+  './js/views/plan.js',
   './js/views/quickadd.js',
   './js/views/settings.js',
   './js/views/track.js',

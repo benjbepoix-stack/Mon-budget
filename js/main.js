@@ -15,11 +15,13 @@ import { generateRecurring } from './features/recurring.js';
 import { initMonthNavs, initEmojiPickers } from './views/common.js';
 import { initNote, renderNote } from './views/note.js';
 import { initTrack, renderTrack } from './views/track.js';
+import { initPlan, renderPlan, renderPlanBadge } from './views/plan.js';
 import { initQuickAdd, openTx, openLinked } from './views/quickadd.js';
 import { initSettings, renderSettings } from './views/settings.js';
 
 const VIEWS = {
   noteView: { title: 'Noter', render: renderNote },
+  planView: { title: 'Prévoir', render: renderPlan },
   trackView: { title: 'Suivre', render: renderTrack }
 };
 const VIEW_KEY = 'budget_last_view';
@@ -54,6 +56,7 @@ const renderCurrent = () => VIEWS[currentView].render();
 function onStateChange(slices) {
   if (slices.includes('theme')) applyTheme(state.theme, { animate: true });
   renderCurrent();
+  renderPlanBadge();
   renderSettings();
 }
 
@@ -118,6 +121,7 @@ function init() {
   initQuickAdd();
   initNote();
   initTrack();
+  initPlan();
   initSettings();
 
   subscribe(onStateChange);
@@ -139,12 +143,14 @@ function init() {
     /* ignore */
   }
   switchView(initial, { scroll: false });
+  renderPlanBadge();
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushNow();
     else if (ready) {
       generateRecurring(); // passage à un nouveau mois / jour de prélèvement atteint
       renderCurrent();
+      renderPlanBadge(); // nouveau jour : rappels atteints
     }
   });
   window.addEventListener('pagehide', flushNow);

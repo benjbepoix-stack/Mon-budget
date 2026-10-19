@@ -75,6 +75,7 @@
 
   <nav class="tabbar" aria-label="Navigation principale">
     <button type="button" class="tabbar__item is-active" data-view="noteView" aria-current="page"><span data-icon="edit"></span><span>Noter</span></button>
+    <button type="button" class="tabbar__item" data-view="planView"><span data-icon="calendar"></span><span>Prévoir</span><span class="tabbar__badge" id="planBadge" aria-hidden="true" hidden></span></button>
     <button type="button" class="tabbar__item" data-view="trackView"><span data-icon="trend"></span><span>Suivre</span></button>
   </nav>
 
@@ -82,6 +83,7 @@
 
     <!-- ================= NOTER : une dépense ou une rentrée ================= -->
     <section id="noteView" class="view">
+      <div class="reminders" id="noteReminders" hidden></div>
       <div class="note-home">
         <button type="button" class="note-add" id="noteStart"><span data-icon="plus" data-size="56"></span><span>Ajouter</span></button>
         <p class="note-home__hint">Une dépense ou une rentrée, en trois questions.</p>
@@ -91,6 +93,27 @@
         <header class="section__head"><h2 class="section__title">Dernières saisies</h2></header>
         <div class="card card--list" id="noteRecent"></div>
         <button type="button" class="btn btn--ghost btn--block note-more" id="noteMore" aria-controls="noteRecent" aria-expanded="false" hidden>Voir plus</button>
+      </section>
+    </section>
+
+    <!-- ================= PRÉVOIR : achats et dépenses à venir, avec rappel ================= -->
+    <section id="planView" class="view" hidden>
+      <div class="card plan-total">
+        <div><p class="plan-total__label">Dans les 3 prochains mois</p><strong class="plan-total__value" id="planTotal"></strong></div>
+        <p class="plan-total__sub" id="planTotalSub"></p>
+      </div>
+
+      <section class="section">
+        <header class="section__head">
+          <div><h2 class="section__title">Bientôt</h2><p class="card__sub">Avec une date, un rappel s’affiche sur « Noter ».</p></div>
+          <button type="button" class="btn btn--add btn--sm" id="planAdd"><span data-icon="plus" data-size="16"></span><span>Ajouter</span></button>
+        </header>
+        <div class="card card--list" id="planDated"></div>
+      </section>
+
+      <section class="section">
+        <header class="section__head"><h2 class="section__title">Envies, sans date</h2></header>
+        <div class="card card--list" id="planWishes"></div>
       </section>
     </section>
 
@@ -204,6 +227,66 @@
         <a class="btn btn--ghost btn--block linked-open" id="linkedOpen" href="#"><span data-icon="link" data-size="18"></span><span id="linkedOpenLabel">Ouvrir l’app</span></a>
         <button type="button" class="btn btn--ghost btn--danger-text" id="linkedRemove"><span data-icon="trash" data-size="18"></span><span>Retirer du budget</span></button>
       </div>
+    </div>
+  </div>
+
+  <!-- À prévoir (ajout / modification) -->
+  <div class="sheet-backdrop" id="planSheet" hidden>
+    <div class="sheet sheet--tall" role="dialog" aria-modal="true" aria-labelledby="planTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="planTitle">À prévoir</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="planForm" novalidate>
+        <input type="hidden" name="editId">
+        <div class="field"><label class="field__label" for="planName">Quoi ?</label><input class="input" id="planName" name="name" maxlength="60" placeholder="Ex. Taxe foncière, nouvelle cafetière" autocomplete="off"></div>
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="planAmount">Montant estimé · € <span class="field__opt">(facult.)</span></label><input class="input" id="planAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+          <div class="field"><label class="field__label" for="planDate">Date <span class="field__opt">(facult.)</span></label><input class="input" id="planDate" type="date" name="date"></div>
+        </div>
+        <div id="planDateOnly" class="form" hidden>
+          <div class="field">
+            <span class="field__label" id="planRepeatLabel">Revient</span>
+            <div class="segmented segmented--types" role="radiogroup" aria-labelledby="planRepeatLabel">
+              <label><input type="radio" name="repeat" value="none" checked><span>Jamais</span></label>
+              <label><input type="radio" name="repeat" value="month"><span>Mois</span></label>
+              <label><input type="radio" name="repeat" value="quarter"><span>Trimestre</span></label>
+              <label><input type="radio" name="repeat" value="year"><span>Année</span></label>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field__label" id="planRemindLabel">Me le rappeler</span>
+            <div class="segmented segmented--types" role="radiogroup" aria-labelledby="planRemindLabel">
+              <label><input type="radio" name="remind" value="7"><span>1 sem.</span></label>
+              <label><input type="radio" name="remind" value="14"><span>2 sem.</span></label>
+              <label><input type="radio" name="remind" value="30" checked><span>1 mois</span></label>
+              <label><input type="radio" name="remind" value="60"><span>2 mois</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="field"><label class="field__label" for="planCategory">Catégorie <span class="field__opt">(facult.)</span></label><select class="input select" id="planCategory" name="categoryId"></select></div>
+        <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">Enregistrer</button></div>
+        <button type="button" class="btn btn--ghost btn--danger-text" id="planDelete" hidden><span data-icon="trash" data-size="18"></span><span>Supprimer</span></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- À prévoir : c'est fait -->
+  <div class="sheet-backdrop" id="planDoneSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="planDoneTitle" tabindex="-1">
+      <div class="sheet__grabber" aria-hidden="true"></div>
+      <header class="sheet__head"><h2 class="sheet__title" id="planDoneTitle">C’est fait</h2><button type="button" class="icon-btn" data-close aria-label="Fermer"><span data-icon="close"></span></button></header>
+      <form class="form sheet__scroll" id="planDoneForm" novalidate>
+        <input type="hidden" name="planId">
+        <label class="toggle"><input type="checkbox" name="record" checked><span class="toggle__track"></span><span>Noter la dépense dans le budget</span></label>
+        <div id="planDoneRecordFields" class="form">
+          <div class="form-grid">
+            <div class="field"><label class="field__label" for="planDoneAmount">Montant payé · €</label><input class="input" id="planDoneAmount" name="amount" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+            <div class="field"><label class="field__label" for="planDoneDate">Date</label><input class="input" id="planDoneDate" type="date" name="date"></div>
+          </div>
+          <div class="field"><label class="field__label" for="planDoneCategory">Catégorie</label><select class="input select" id="planDoneCategory" name="categoryId"></select></div>
+        </div>
+        <p class="settings__note" id="planDoneNext"></p>
+        <div class="form-actions"><button type="button" class="btn btn--ghost" data-close>Annuler</button><button type="submit" class="btn btn--primary">C’est fait</button></div>
+      </form>
     </div>
   </div>
 

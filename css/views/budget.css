@@ -379,3 +379,40 @@ html.flow-open, html.flow-open body { overflow: hidden; }
 .flow-done__again { background: var(--accent-ink); color: var(--accent); }
 .flow-done__close { color: var(--accent-ink); padding: 10px; font-size: var(--fs-md, 16px); }
 .flow-key:focus:not(:focus-visible) { outline: none; }
+
+/* =========================================================
+   PRÉVOIR — achats et dépenses à venir, rappels sur « Noter »
+   ========================================================= */
+.tabbar__badge { position: absolute; top: 5px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--amber); color: var(--bg); font-size: 10.5px; font-weight: 800; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; }
+@media (min-width: 900px) { .tabbar__badge { position: static; } }
+
+.plan-total { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.plan-total__label { font-size: var(--fs-sm); color: var(--text-2); }
+.plan-total__value { display: block; margin-top: 2px; font-size: var(--fs-2xl); font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.plan-total__sub { max-width: 52%; font-size: var(--fs-xs); color: var(--text-2); text-align: right; line-height: 1.45; }
+
+.plan-row { display: flex; align-items: center; }
+.plan-row + .plan-row { border-top: 1px solid var(--border); }
+.plan-row__tick { flex: none; display: grid; place-items: center; width: 52px; min-height: 58px; padding-left: 4px; }
+.plan-row__tick:active .check { background: var(--accent-soft); }
+.plan-row__tick .check.is-soon { border-color: var(--amber); }
+.plan-row__tick .check.is-late { border-color: var(--danger); }
+.plan-row__main { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-3); min-height: 58px; padding: 8px 16px 8px 0; text-align: left; color: inherit; }
+.plan-row__main:active { background: var(--surface-2); }
+.plan-row__end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
+.plan-row__end .check-row__amount { color: var(--text); }
+.plan-row__when { font-size: 11.5px; font-weight: 600; color: var(--text-3); white-space: nowrap; }
+.plan-row__when.is-soon, .plan-row__when.is-late { padding: 2px 8px; border-radius: 999px; }
+.plan-row__when.is-soon { background: var(--amber-soft); color: var(--amber); }
+.plan-row__when.is-late { background: var(--danger-soft); color: var(--danger); }
+
+.reminders { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
+.reminder { display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: 12px 14px; border-radius: var(--r-lg); background: var(--amber-soft); color: var(--text); text-align: left; }
+.reminder.is-late { background: var(--danger-soft); }
+.reminder__icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); color: var(--amber); }
+.reminder.is-late .reminder__icon { color: var(--danger); }
+.reminder__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reminder__body strong { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reminder__body small { font-size: var(--fs-xs); color: var(--text-2); }
+.reminder > .icon { flex: none; color: var(--text-3); }
+.reminder__more { align-self: center; }
