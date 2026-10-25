@@ -1,15 +1,33 @@
 /* Page « Suivre » : budgets choisis avec projection, charges fixes, rentrées et moyennes par catégorie. */
 import { $, $$, esc } from '../core/utils.js';
 import { formatEUR, formatEURRound } from '../core/money.js';
-import { state } from '../core/store.js';
-import { budgetTracking, budgetTrends, fixedCharges, fixedByMonth, fixedByYear, categoryAverages, categoryById, monthDate, monthKey, salaryHistory, primesByYear, daysInMonth } from '../core/selectors.js';
-import { getMonth } from '../core/month-state.js';
+import { state, commit } from '../core/store.js';
+import { budgetTracking, budgetTrends, fixedCharges, fixedByMonth, fixedByYear, categoryAverages, categoryById, monthDate, monthKey, shiftMonth, salaryHistory, primesByYear, daysInMonth } from '../core/selectors.js';
+import { getMonth, setMonth, onMonthChange } from '../core/month-state.js';
+import { animate, stagger, haptic, rollText } from '../ui/motion.js';
+import { toast } from '../ui/toast.js';
 import { renderBarChart, renderBudgetCurve } from '../ui/charts.js';
 import { icon } from '../ui/icons.js';
 import { monthLabel } from './common.js';
 import { openCategory } from './settings.js';
 
 let fixedScale = 'month';
+/** Animations d'arrivée à jouer au prochain rendu (onglet ouvert, mois changé). */
+let entering = false;
+let turn = 0;
+let shownMonth = getMonth();
+/** Charge fixe tout juste cochée ou retirée : sa coche rebondit au rendu suivant. */
+let justTicked = null;
+
+/** Dernier texte affiché par clé : un montant qui change roule vers sa nouvelle valeur. */
+const lastText = new Map();
+function roll(el, key) {
+  if (!el) return;
+  const now = el.textContent;
+  const prev = lastText.get(key);
+  lastText.set(key, now);
+  rollText(el, prev, now);
+}
 
 const shortMonth = key => monthDate(key).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
 // Valeurs en centimes : ≥ 1 000 € affiché en k€.
@@ -66,7 +84,7 @@ function renderBudgets(key) {
       else if (b.status === 'future') note = b.projected ? `Déjà prévu : <b>${formatEURRound(b.projected)}</b> de charges fixes` : 'Mois à venir';
       else note = `Projection au ${b.days} : <b>≈ ${formatEURRound(b.projected)}</b> · ${b.projected > b.budget ? `<span class="is-warn">${formatEURRound(b.projected - b.budget)} au-dessus</span>` : `${formatEURRound(b.budget - b.projected)} de marge`}`;
       return `<div class="budget budget--${kind}">
-        <div class="budget__top">${check(kind, label)}<span class="budget__name">${esc(c.icon)} ${esc(c.name)}</span><span class="budget__amount"><strong>${formatEURRound(b.spent)}</strong> / ${formatEURRound(b.budget)}</span></div>
+        <div class="budget__top">${check(kind, label)}<span class="budget__name">${esc(c.icon)} ${esc(c.name)}</span><span class="budget__amount"><strong data-roll="${esc(c.id)}">${formatEURRound(b.spent)}</strong> / ${formatEURRound(b.budget)}</span></div>
         ${b.status === 'future' ? '' : `<div class="budget__curve" data-curve="${i}"></div>`}
         <p class="budget__note">${note}</p>
         ${b.status === 'future' ? '' : trendChips(c.id, key)}
@@ -79,6 +97,32 @@ function renderBudgets(key) {
     const label = b.status === 'past' ? `${b.category.name} : ${formatEURRound(b.spent)} dépensés pour ${formatEURRound(b.budget)}` : `${b.category.name} : ${formatEURRound(b.spent)} au ${b.today}, projection ${formatEURRound(b.projected)} pour ${formatEURRound(b.budget)}`;
     renderBudgetCurve(el, b, { fmt: formatEURRound, label });
   });
+  $$('[data-roll]', host).forEach(el => roll(el, `budget:${el.dataset.roll}`));
+  if (entering) host.querySelectorAll('.budget').forEach(drawBudget);
+}
+
+/**
+ * La courbe se trace jusqu'à aujourd'hui, la projection suit en pointillé ; si elle passe
+ * le plafond, la ligne du plafond s'allume et la pastille « ! » sursaute.
+ */
+function drawBudget(el, i) {
+  const svg = el.querySelector('svg');
+  if (!svg) return;
+  const d = i * 120;
+  const line = svg.querySelector('.bcurve__line');
+  if (line) {
+    const len = line.getTotalLength();
+    animate(line, [{ strokeDasharray: len, strokeDashoffset: len }, { strokeDasharray: len, strokeDashoffset: 0 }], { duration: 900, delay: d, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+  }
+  animate(svg.querySelector('.bcurve__area'), [{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: d + 450 });
+  animate(svg.querySelector('.bcurve__now'), [{ transform: 'scale(0)' }, { transform: 'none' }], { spring: 'bounce', delay: d + 850 });
+  animate(svg.querySelector('.bcurve__proj'), [{ strokeDashoffset: 28, opacity: 0 }, { strokeDashoffset: 0, opacity: 1 }], { duration: 650, delay: d + 900, easing: 'linear' });
+  animate(svg.querySelector('.bcurve__end'), [{ transform: 'scale(0)' }, { transform: 'none' }], { spring: 'bounce', delay: d + 1500 });
+  animate(svg.querySelector('.bcurve__value'), [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: d + 1500 });
+  const cap = svg.querySelector('.bcurve__budget.is-over');
+  if (cap) animate(cap, [{ strokeWidth: 1 }, { strokeWidth: 3, filter: 'drop-shadow(0 0 4px var(--amber))' }, { strokeWidth: 1 }, { strokeWidth: 2.5, filter: 'drop-shadow(0 0 3px var(--amber))' }, { strokeWidth: 1 }], { duration: 1200, delay: d + 1550 });
+  const badge = el.querySelector('.check--warn, .check--over');
+  if (badge) animate(badge, [{ transform: 'scale(0)' }, { transform: 'scale(1.25) rotate(-12deg)', offset: 0.5 }, { transform: 'rotate(8deg)', offset: 0.75 }, { transform: 'none' }], { duration: 600, delay: d + 1550, easing: 'ease-out' });
 }
 
 /* ---------- Charges fixes ---------- */
@@ -86,7 +130,11 @@ function renderFixedList(key) {
   const f = fixedCharges(key);
   const host = $('#fixedList');
   const past = key < monthKey();
-  $('#fixedSub').textContent = f.count ? `${formatEURRound(f.planned)} / mois · ${formatEURRound(f.planned * 12)} / an · ${f.paidCount} sur ${f.count} prélevée${f.paidCount > 1 ? 's' : ''}` : '';
+  // Mois en cours ou passé : une charge se glisse pour la noter prélevée (ou la retirer).
+  const swipe = key <= monthKey();
+  $('#fixedSub').innerHTML = f.count ? `${formatEURRound(f.planned)} / mois · ${formatEURRound(f.planned * 12)} / an · <span data-paid-count>${f.paidCount}</span> sur ${f.count} prélevée${f.paidCount > 1 ? 's' : ''}` : '';
+  roll($('#fixedSub [data-paid-count]'), 'fixed:paid');
+  $('#fixedHint').hidden = !swipe || !f.rows.some(r => !r.paid);
   $('#fixedTrendCard').hidden = !f.count && !state.transactions.some(t => t.recurringId && t.type === 'expense');
   if (!f.count) {
     host.innerHTML = `<div class="empty-state"><span class="empty-state__icon">${icon('repeat', 22)}</span><p>Aucune charge fixe. Cochez « Chaque mois » en notant une dépense (loyer, assurance, abonnement) : elle est saisie toute seule les mois suivants.</p></div>`;
@@ -96,10 +144,123 @@ function renderFixedList(key) {
     .map(r => {
       const c = categoryById(r.categoryId);
       const sub = r.paid ? `prélevée le ${r.day}` : past ? `non prélevée` : `le ${r.day} · à venir`;
-      const body = `${check(r.paid ? 'done' : 'todo', r.paid ? 'Prélevée' : 'À venir')}<span class="check-row__body"><span>${esc(r.label)}</span><small>${sub}${c ? ` · ${esc(c.name)}` : ''}</small></span><span class="check-row__amount">${formatEUR(r.amount)}</span>`;
-      return r.tx ? `<button type="button" class="check-row is-done" data-tx="${esc(r.tx.id)}">${body}</button>` : `<div class="check-row">${body}</div>`;
+      const tick = swipe && !r.paid ? `<button type="button" class="check-row__tick" data-fixed-tick aria-label="${esc(`Noter ${r.label} comme prélevée`)}">${check('todo', 'À venir')}</button>` : check(r.paid ? 'done' : 'todo', r.paid ? 'Prélevée' : 'À venir');
+      const body = `${tick}<span class="check-row__body"><span>${esc(r.label)}</span><small>${sub}${c ? ` · ${esc(c.name)}` : ''}</small></span><span class="check-row__amount">${formatEUR(r.amount)}</span>`;
+      const row = r.tx ? `<button type="button" class="check-row is-done" data-tx="${esc(r.tx.id)}">${body}</button>` : `<div class="check-row">${body}</div>`;
+      return swipe ? `<div class="swipe-row${r.paid ? ' is-paid' : ''}" data-fixed="${esc(r.id)}"><span class="swipe-row__back" aria-hidden="true">${icon(r.paid ? 'close' : 'check', 22)}</span>${row}</div>` : row;
     })
     .join('');
+  if (justTicked) {
+    const row = host.querySelector(`[data-fixed="${CSS.escape(justTicked)}"]`);
+    justTicked = null;
+    if (row) {
+      animate(row.querySelector('.check'), [{ transform: 'scale(.4)' }, { transform: 'none' }], { spring: 'bounce' });
+      animate(row.querySelector('.check svg'), [{ transform: 'scale(0) rotate(-30deg)' }, { transform: 'none' }], { spring: 'bounce', delay: 60 });
+      animate(row.querySelector('.check-row__amount'), [{ transform: 'none' }, { transform: 'translateY(-3px)', offset: 0.4 }, { transform: 'none' }], { duration: 360 });
+    }
+  }
+}
+
+/** Coche ou retire le prélèvement d'une charge fixe (même identifiant que la génération automatique). */
+function toggleFixed(id) {
+  const key = getMonth();
+  const r = fixedCharges(key).rows.find(x => x.id === id);
+  if (!r) return;
+  justTicked = id;
+  if (r.paid) {
+    state.transactions = state.transactions.filter(t => t.id !== r.tx.id);
+    haptic(8);
+    commit('transactions');
+    toast(`${r.label} : prélèvement retiré`, { type: 'info' });
+    return;
+  }
+  // Payée avant le jour prévu : notée aujourd'hui ; sinon au jour prévu.
+  const today = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const date = key === monthKey() && today.getDate() < r.day ? `${key}-${pad(today.getDate())}` : `${key}-${pad(r.day)}`;
+  const id2 = `rec-${r.id}-${key}`;
+  state.transactions = state.transactions.filter(t => t.id !== id2);
+  state.transactions.push({ id: id2, type: 'expense', amount: r.amount, date, categoryId: r.categoryId, note: r.label, recurringId: r.id });
+  haptic(16);
+  commit('transactions');
+}
+
+/* ---------- Glisser pour cocher ---------- */
+const THRESHOLD = 84;
+let drag = null;
+// Au-delà du seuil la ligne résiste (élastique) ; dans le mauvais sens elle bouge à peine.
+const rubber = d => (d < 0 ? d * 0.18 : d < THRESHOLD ? d : THRESHOLD + (d - THRESHOLD) * 0.32);
+
+function dragTo(dx) {
+  const dir = drag.row.classList.contains('is-paid') ? -1 : 1;
+  const d = rubber(dx * dir);
+  drag.front.style.transform = `translateX(${d * dir}px)`;
+  drag.row.style.setProperty('--p', Math.max(0, Math.min(1, d / THRESHOLD)).toFixed(3));
+  const armed = d >= THRESHOLD;
+  if (armed !== drag.armed) {
+    drag.armed = armed;
+    drag.row.classList.toggle('is-armed', armed);
+    if (armed) haptic(10);
+  }
+}
+
+function release() {
+  const { row, front, armed } = drag;
+  const from = front.style.transform || 'none';
+  front.style.transform = '';
+  row.style.removeProperty('--p');
+  row.classList.remove('is-armed');
+  animate(front, [{ transform: from }, { transform: 'none' }], { spring: 'bounce' });
+  // Le relâchement ne doit pas ouvrir l'opération (clic qui suit le glisser).
+  const eat = e => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  window.addEventListener('click', eat, { capture: true, once: true });
+  setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 350);
+  if (armed) setTimeout(() => toggleFixed(row.dataset.fixed), 120);
+}
+
+function initSwipe() {
+  const host = $('#fixedList');
+  host.addEventListener('click', e => {
+    const t = e.target.closest('[data-fixed-tick]');
+    if (t) toggleFixed(t.closest('[data-fixed]').dataset.fixed);
+  });
+  host.addEventListener('pointerdown', e => {
+    const row = e.target.closest('[data-fixed]');
+    if (!row || e.target.closest('[data-fixed-tick]') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    drag = { row, front: row.querySelector('.check-row'), x: e.clientX, y: e.clientY, id: e.pointerId, moving: false, armed: false };
+  });
+  window.addEventListener(
+    'pointermove',
+    e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (!drag.moving) {
+        // Geste vertical : on laisse défiler la page.
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return (drag = null);
+        if (Math.abs(dx) < 8) return;
+        drag.moving = true;
+        try {
+          drag.front.setPointerCapture(drag.id);
+        } catch {
+          /* pointeur déjà relâché */
+        }
+      }
+      e.preventDefault();
+      dragTo(dx);
+    },
+    { passive: false }
+  );
+  const end = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.moving) release();
+    drag = null;
+  };
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
 }
 
 /** Évolution des charges fixes : 12 derniers mois, ou moyenne mensuelle par année. */
@@ -200,17 +361,56 @@ function renderAverages() {
     .join('');
 }
 
-export function renderTrack() {
+/** Barres des charges fixes : elles montent l'une après l'autre. */
+function growBars() {
+  $$('#fixedChart path[fill]').forEach((b, i) => animate(b, [{ transform: 'scaleY(0)' }, { transform: 'none' }], { spring: 'soft', delay: 300 + i * 35 }));
+}
+
+/**
+ * Rendu de Suivre. `enter` : l'onglet vient d'être ouvert (courbes tracées, barres qui montent).
+ * Après un changement de mois, la page glisse dans le sens du geste.
+ */
+export function renderTrack({ enter = false } = {}) {
   const key = getMonth();
+  entering = enter || Boolean(turn);
   renderBudgets(key);
   renderFixedList(key);
   renderFixedTrend(key);
   renderSalary(key);
   renderPrimes();
   renderAverages();
+  if (entering) growBars();
+  if (turn) {
+    const dir = turn;
+    animate($('#trackView [data-month-label]'), [{ transform: `translateX(${dir * 40}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { spring: 'settle' });
+    $$('#trackView > .section').forEach((s, i) => animate(s, [{ transform: `translateX(${dir * 48}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { spring: 'settle', delay: i * 40 }));
+  }
+  entering = false;
+  turn = 0;
 }
 
 export function initTrack() {
+  initSwipe();
+  onMonthChange(key => {
+    turn = key > shownMonth ? 1 : -1;
+    shownMonth = key;
+    haptic(6);
+  });
+  // Balayer le nom du mois : mois suivant ou précédent (pas au-delà du mois prochain).
+  let swipeX = null;
+  const nav = $('#trackView [data-month-nav]');
+  nav.style.touchAction = 'pan-y';
+  nav.addEventListener('pointerdown', e => {
+    if (!e.target.closest('button')) swipeX = { x: e.clientX, id: e.pointerId };
+  });
+  window.addEventListener('pointerup', e => {
+    if (!swipeX || e.pointerId !== swipeX.id) return;
+    const dx = e.clientX - swipeX.x;
+    swipeX = null;
+    if (Math.abs(dx) < 48) return;
+    const next = shiftMonth(getMonth(), dx < 0 ? 1 : -1);
+    if (next <= shiftMonth(monthKey(), 1)) setMonth(next);
+  });
   $('#fixedScale').addEventListener('click', e => {
     const b = e.target.closest('[data-scale]');
     if (!b || b.dataset.scale === fixedScale) return;

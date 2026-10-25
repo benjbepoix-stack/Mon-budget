@@ -22,7 +22,8 @@ import { initSettings, renderSettings } from './views/settings.js';
 const VIEWS = {
   noteView: { title: 'Noter', render: renderNote },
   planView: { title: 'Prévoir', render: renderPlan },
-  trackView: { title: 'Suivre', render: renderTrack }
+  // À l'ouverture de l'onglet, les courbes se tracent et les barres montent.
+  trackView: { title: 'Suivre', render: renderTrack, enter: () => renderTrack({ enter: true }) }
 };
 const VIEW_KEY = 'budget_last_view';
 /** Dernier compte connecté sur cet appareil (changement de compte : données locales vidées). */
@@ -42,7 +43,7 @@ function switchView(id, { scroll = true } = {}) {
   });
   $('#headerTitle').textContent = VIEWS[id].title;
   document.title = `${VIEWS[id].title} · Mon budget`;
-  VIEWS[id].render();
+  (VIEWS[id].enter || VIEWS[id].render)();
   try {
     sessionStorage.setItem(VIEW_KEY, id);
   } catch {
