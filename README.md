@@ -10,7 +10,7 @@ Trois pages, peu de chiffres : on ne note pas tout, on suit ce qui compte.
 - **Noter** : un seul gros bouton **« Ajouter »**, puis un fil d'une question par écran : « Dépense ou rentrée ? », « Pour quoi ? » (les budgets suivis avec ce qu'il reste, puis « Autre catégorie… » ; en Rentrée : Salaire avec le montant habituel, Prime avec le total de l'année…), « Combien ? » (pavé numérique, ce qui restera dans le budget, date, note et **« Chaque mois »** en options), puis « C'est noté » avec la jauge du budget. Retour et Échap reviennent d'une question. Dernières saisies sous le bouton ; un appui ouvre l'édition. Catégories triées par **nombre d'utilisations sur 90 jours**.
 - **Suivre** (mois par mois) :
   - **Budgets suivis** : seulement les catégories qui ont un plafond. Case ✓ (ça tient), ! ambre (la projection dépasse), ! rouge (dépassé) ; courbe des dépenses cumulées, pointillé jusqu'à la **projection de fin de mois** (charges fixes de la catégorie comptées une fois, le reste extrapolé au rythme actuel), trait du plafond.
-  - **Charges fixes** : liste à cocher des charges récurrentes du mois (prélevée le X / à venir), total par mois et par an ; **évolution** sur 12 mois (comparaison avec un an avant) ou **par année** (moyenne mensuelle, mois en cours incomplet non compté).
+  - **Charges fixes** : liste à cocher des charges récurrentes du mois (prélevée le X / à venir) ; **glisser une charge vers la droite** (ou toucher son rond) la note prélevée tout de suite, vers la gauche retire le prélèvement (même identifiant `rec-<id>-<AAAA-MM>` que la génération automatique : pas de doublon) ; total par mois et par an ; **évolution** sur 12 mois (comparaison avec un an avant) ou **par année** (moyenne mensuelle, mois en cours incomplet non compté).
   - Sous chaque budget, deux **tendances** : ce mois face au mois précédent au même jour, et la moyenne mensuelle depuis janvier face à celle de l'an dernier (hausse en ambre, baisse en vert, toujours avec ▲ / ▼).
   - **Salaire** (catégorie « Salaire ») : salaire habituel et liste des **augmentations** ; les petites variations mensuelles sont ignorées (un changement compte s'il dépasse 1,5 % deux mois de suite).
   - **Primes par année** (catégorie « Prime ») : total des 3 dernières années, année en cours hachurée, et ce que l'an dernier avait reçu après ce mois-ci.
@@ -39,7 +39,7 @@ js/
   core/                     store (synchro fine), schema, money (centimes), selectors, validation, dates
   services/                 firebase (compte + synchro), storage
   features/                 auth (connexion, Réglages › Compte), pin (verrou facultatif), recurring (génération automatique)
-  ui/                       icônes, modales, toasts, thème, graphiques
+  ui/                       icônes, modales, toasts, thème, graphiques, motion (ressorts, compteur à rouleaux)
   views/                    note (Noter), plan (Prévoir), track (Suivre), quickadd (édition d'une opération), settings
 ```
 
@@ -94,4 +94,8 @@ python3 -m http.server 8080   # puis http://localhost:8080
 GitHub Pages : **Settings → Pages → Deploy from a branch → `main` / root**.
 
 ## Style
-Style minimaliste commun aux apps (cartes pleines), couleurs **Ardoise** (gris bleu et cobalt, police IBM Plex Sans). Logo : la courbe d'un budget (trait plein, puis pointillé jusqu'à la fin du mois) sous le trait du plafond, sur fond clair.
+Style minimaliste commun aux apps (cartes pleines), couleurs **Ardoise** (gris bleu et cobalt, police IBM Plex Sans).
+
+**Mouvement** (`js/ui/motion.js`) : animations à ressort (courbes CSS `linear()` calculées par une petite simulation), interruptibles. Le bouton « Ajouter » s'agrandit en cercle jusqu'à devenir le fil et s'y referme ; les questions glissent comme des cartes ; le montant défile en **rouleaux** et une jauge « il restera » avance pendant la frappe (ambre et petit tremblement au-delà du plafond) ; « C'est noté » s'ouvre depuis « Valider », la coche se dessine et le montant part en pièce dans la jauge du budget ; les nouvelles saisies se glissent en tête de liste. Sur Suivre, les courbes se tracent à l'ouverture (plafond allumé si la projection le dépasse, point du jour qui respire), les barres montent, le mois glisse dans le sens du geste (flèches ou balayage du nom du mois) et les montants roulent vers leur nouvelle valeur. Avec « Réduire les animations » (iPhone), il ne reste que des fondus courts.
+
+Logo : la courbe d'un budget (trait plein, puis pointillé jusqu'à la fin du mois) sous le trait du plafond, sur fond clair.

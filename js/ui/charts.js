@@ -362,10 +362,10 @@ export function renderBudgetCurve(host, b, { fmt, label }) {
   const endValue = b.status === 'past' ? b.cumul[b.days - 1] : b.projected;
   const days = [...new Set([1, b.status === 'current' ? b.today : null, b.days].filter(Boolean))];
   host.innerHTML = `<svg class="chart bcurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
-    <line class="bcurve__budget" x1="${L}" x2="${W - R + 4}" y1="${yb}" y2="${yb}"/>
+    <line class="bcurve__budget ${over ? 'is-over' : ''}" x1="${L}" x2="${W - R + 4}" y1="${yb}" y2="${yb}"/>
     <text class="chart-axis" x="${W - R + 8}" y="${lb}">${esc(fmt(b.budget))}</text>
     ${area ? `<path class="bcurve__area" d="${area}"/>` : ''}${line ? `<path class="bcurve__line" d="${line}"/>` : ''}${proj}
-    ${last ? `<circle class="bcurve__now" cx="${last[0]}" cy="${last[1]}" r="3.5"/>` : ''}
+    ${last && b.status === 'current' ? `<circle class="bcurve__ping" cx="${last[0]}" cy="${last[1]}" r="4"/>` : ''}${last ? `<circle class="bcurve__now" cx="${last[0]}" cy="${last[1]}" r="3.5"/>` : ''}
     <text class="bcurve__value ${over ? 'is-over' : ''}" x="${W - R + 8}" y="${lp}">${b.status === 'past' ? '' : '≈ '}${esc(fmt(endValue))}</text>
     ${days.map(d => `<text class="chart-date" x="${x(d)}" y="${H - 2}" text-anchor="${d === 1 ? 'start' : d === b.days && b.today !== d ? 'end' : 'middle'}">${d}</text>`).join('')}
   </svg>`;
