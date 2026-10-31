@@ -314,3 +314,56 @@ export function primesByYear(n = 3, now = new Date()) {
   const first = years.findIndex(y => y.total);
   return { years: first === -1 ? [] : years.slice(first), laterLastYear, thisYear: years[years.length - 1]?.total || 0 };
 }
+
+/* ---------- Abonnements : calendrier des prélèvements et rentrées du mois ---------- */
+
+/** Catégories « abonnement » (identifiant d'origine ou nom contenant « abonnement »). */
+export const subscriptionCategoryIds = () => new Set(expenseCategories().filter(c => c.id === 'abonnements' || /abonnement/i.test(c.name)).map(c => c.id));
+
+/**
+ * Échéances récurrentes d'un mois (dépenses et rentrées) : chaque récurrence active, passée
+ * (opération déjà saisie ou générée) ou à venir, plus les occurrences d'une récurrence
+ * arrêtée depuis. Résumé : revenu du mois (reçu + rentrées récurrentes attendues), dépensé,
+ * à venir (prélèvements récurrents pas encore passés) et cash = ce qui reste une fois tout payé.
+ */
+export function subscriptionMonth(key, now = new Date()) {
+  const current = monthKey(now);
+  const status = key === current ? 'current' : key < current ? 'past' : 'future';
+  const days = daysInMonth(key);
+  const month = monthTransactions(key);
+  const recTxs = month.filter(t => t.recurringId && (t.type === 'expense' || t.type === 'income'));
+  const subCats = subscriptionCategoryIds();
+  const items = state.recurring
+    .filter(r => r.active && r.start <= key)
+    .map(r => {
+      const tx = recTxs.find(t => t.recurringId === r.id);
+      return { id: r.id, recurringId: r.id, type: r.type, label: r.label, categoryId: r.categoryId, amount: tx ? tx.amount : r.amount, day: tx ? Number(tx.date.slice(8, 10)) : Math.min(r.day, days), paid: Boolean(tx), tx };
+    });
+  recTxs.filter(t => !items.some(i => i.tx === t)).forEach(t => items.push({ id: t.recurringId, recurringId: t.recurringId, type: t.type, label: t.note || 'Charge fixe', categoryId: t.categoryId, amount: t.amount, day: Number(t.date.slice(8, 10)), paid: true, tx: t }));
+  items.forEach(i => {
+    i.subscription = i.type === 'expense' && subCats.has(i.categoryId);
+    // Mois passé : une échéance non saisie n'est plus « à venir ».
+    i.pending = !i.paid && status !== 'past';
+  });
+  items.sort((a, b) => a.day - b.day || b.amount - a.amount);
+
+  const received = sum(month.filter(t => t.type === 'income'));
+  const spent = sum(month.filter(t => t.type === 'expense'));
+  const upcoming = sum(items.filter(i => i.pending && i.type === 'expense'));
+  const incoming = sum(items.filter(i => i.pending && i.type === 'income'));
+  const income = received + incoming;
+  return {
+    key,
+    status,
+    days,
+    today: status === 'current' ? now.getDate() : null,
+    items,
+    subscriptions: items.filter(i => i.subscription),
+    others: items.filter(i => !i.subscription),
+    income,
+    received,
+    spent,
+    upcoming,
+    cash: income - spent - upcoming
+  };
+}
