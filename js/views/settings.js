@@ -131,7 +131,7 @@ function fillRecCategories(type, selected) {
   $('#recCategory').innerHTML = cats.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(c.icon)} ${esc(c.name)}</option>`).join('');
 }
 
-function openRecurring(id = null) {
+export function openRecurring(id = null) {
   const r = id ? state.recurring.find(x => x.id === id) : null;
   const f = $('#recForm');
   f.reset();

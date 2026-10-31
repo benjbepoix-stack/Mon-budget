@@ -5,7 +5,7 @@ HTML / CSS / JavaScript purs (modules ES), sans étape de build ni dépendance p
 
 ## Fonctionnalités
 
-Trois pages, peu de chiffres : on ne note pas tout, on suit ce qui compte.
+Quatre pages, peu de chiffres : on ne note pas tout, on suit ce qui compte.
 
 - **Noter** : un seul gros bouton **« Ajouter »**, puis un fil d'une question par écran : « Dépense ou rentrée ? », « Pour quoi ? » (les budgets suivis avec ce qu'il reste, puis « Autre catégorie… » ; en Rentrée : Salaire avec le montant habituel, Prime avec le total de l'année…), « Combien ? » (pavé numérique, ce qui restera dans le budget, date, note et **« Chaque mois »** en options), puis « C'est noté » avec la jauge du budget. Retour et Échap reviennent d'une question. Dernières saisies sous le bouton ; un appui ouvre l'édition. Catégories triées par **nombre d'utilisations sur 90 jours**.
 - **Suivre** (mois par mois) :
@@ -16,6 +16,7 @@ Trois pages, peu de chiffres : on ne note pas tout, on suit ce qui compte.
   - **Primes par année** (catégorie « Prime ») : total des 3 dernières années, année en cours hachurée, et ce que l'an dernier avait reçu après ce mois-ci.
   - **Moyennes par catégorie** : dépense moyenne par mois sur les 6 derniers mois complets (hors charges fixes), avec le plafond actuel et le mois le plus haut ; un appui ouvre la catégorie pour **ajuster le plafond**.
 - **Prévoir** (troisième onglet) : liste des achats et dépenses à venir (taxe foncière, impôts, nouvelle cafetière, cadeau d'anniversaire…), avec montant estimé, date, périodicité (une fois, chaque mois, trimestre, année) et catégorie, tous facultatifs sauf le nom (une dépense qui revient a une date). Total des échéances des 3 prochains mois, puis « Bientôt » (datées, avec « dans 27 jours » ou « en retard ») et « Envies, sans date ». Un **rappel** apparaît en haut de « Noter » et en pastille sur l'onglet 1 semaine à 2 mois avant la date (1 mois par défaut). Cocher une ligne propose de **noter la dépense** dans le budget (montant payé, date, catégorie) ; une dépense qui revient passe à l'échéance suivante avec le montant payé, une dépense ponctuelle disparaît. Stockées sous `users/<uid>/budget/plans/<id>`, et dans l'export JSON.
+- **Abonnements** (quatrième onglet, mois par mois) : bandeau avec le mois précédent, le mois affiché et le suivant (un appui ou un balayage change de mois) ; résumé **Cash** (ce qui restera une fois tout payé : revenu − dépensé − à venir), **À venir** (prélèvements récurrents pas encore passés) et **Revenu** (reçu + rentrées récurrentes attendues), avec une barre cash / à venir (hachuré) / dépensé ; **calendrier** du mois où chaque jour de prélèvement ou de rentrée récurrente montre la pastille du service (Netflix, Spotify, Amazon, Disney+, iCloud, Basic Fit… reconnus au nom, `js/ui/brands.js`, sinon l'icône de la catégorie), un appui sur le jour détaille ses échéances ; puis la liste **Abonnements** (catégorie « Abonnements » ou service reconnu : pastille, nom, date, montant / mois, total par mois et par an) et les **autres échéances** (loyer, assurance, salaire…). Rien de nouveau à saisir : tout vient des charges et revenus récurrents.
 - **Charges et revenus récurrents** : ajoutés automatiquement au jour prévu (Réglages › Charges & revenus récurrents).
 - **Dépenses reliées** : les entretiens et autres dépenses de Mon Garage, et les entretiens de Ma Maison, à partir du 1er octobre 2026, apparaissent automatiquement (catégories Transport et Logement, icône lien), aussi dans les dernières saisies. Un appui propose d'ouvrir l'app d'origine (où elles se modifient) ou de **retirer la dépense du budget** : elle reste dans l'app d'origine, et son identifiant est noté sous `users/<uid>/budget/hidden` pour ne plus la compter. Publiées par ces apps, avec le même compte, sous `users/<uid>/budget/linked/garage` et `…/linked/maison` ; Mon budget les lit dans son propre nœud et ne les réécrit jamais. Ne pas les ressaisir à la main.
 - **Catégories** préremplies et modifiables (icône, nom, plafond : seules celles qui en ont un sont suivies).
@@ -40,7 +41,7 @@ js/
   services/                 firebase (compte + synchro), storage
   features/                 auth (connexion, Réglages › Compte), pin (verrou facultatif), recurring (génération automatique)
   ui/                       icônes, modales, toasts, thème, graphiques, motion (ressorts, compteur à rouleaux)
-  views/                    note (Noter), plan (Prévoir), track (Suivre), quickadd (édition d'une opération), settings
+  views/                    note (Noter), plan (Prévoir), track (Suivre), subs (Abonnements), quickadd (édition d'une opération), settings
 ```
 
 Les montants sont stockés en **centimes entiers** (aucune erreur d'arrondi).

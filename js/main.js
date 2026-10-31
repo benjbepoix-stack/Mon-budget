@@ -16,6 +16,7 @@ import { initMonthNavs, initEmojiPickers } from './views/common.js';
 import { initNote, renderNote } from './views/note.js';
 import { initTrack, renderTrack } from './views/track.js';
 import { initPlan, renderPlan, renderPlanBadge } from './views/plan.js';
+import { initSubs, renderSubs } from './views/subs.js';
 import { initQuickAdd, openTx, openLinked } from './views/quickadd.js';
 import { initSettings, renderSettings } from './views/settings.js';
 
@@ -23,7 +24,8 @@ const VIEWS = {
   noteView: { title: 'Noter', render: renderNote },
   planView: { title: 'Prévoir', render: renderPlan },
   // À l'ouverture de l'onglet, les courbes se tracent et les barres montent.
-  trackView: { title: 'Suivre', render: renderTrack, enter: () => renderTrack({ enter: true }) }
+  trackView: { title: 'Suivre', render: renderTrack, enter: () => renderTrack({ enter: true }) },
+  subsView: { title: 'Abonnements', render: renderSubs }
 };
 const VIEW_KEY = 'budget_last_view';
 /** Dernier compte connecté sur cet appareil (changement de compte : données locales vidées). */
@@ -123,6 +125,7 @@ function init() {
   initNote();
   initTrack();
   initPlan();
+  initSubs();
   initSettings();
 
   subscribe(onStateChange);

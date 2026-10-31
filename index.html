@@ -77,6 +77,7 @@
     <button type="button" class="tabbar__item is-active" data-view="noteView" aria-current="page"><span data-icon="edit"></span><span>Noter</span></button>
     <button type="button" class="tabbar__item" data-view="planView"><span data-icon="calendar"></span><span>Prévoir</span><span class="tabbar__badge" id="planBadge" aria-hidden="true" hidden></span></button>
     <button type="button" class="tabbar__item" data-view="trackView"><span data-icon="trend"></span><span>Suivre</span></button>
+    <button type="button" class="tabbar__item" data-view="subsView"><span data-icon="repeat"></span><span>Abonnements</span></button>
   </nav>
 
   <main class="app" id="main" tabindex="-1">
@@ -166,6 +167,38 @@
       <section class="section">
         <header class="section__head"><div><h2 class="section__title">Moyennes par catégorie</h2><p class="card__sub" id="averageSub"></p></div></header>
         <div class="card card--list" id="averageList"></div>
+      </section>
+    </section>
+
+    <!-- ================= ABONNEMENTS : calendrier des prélèvements du mois ================= -->
+    <section id="subsView" class="view" hidden>
+      <div class="subs-band" id="subsBand">
+        <div class="subs-months" id="subsMonths"></div>
+        <button type="button" class="link-btn subs-band__reset" id="subsReset" hidden>Revenir au mois en cours</button>
+      </div>
+      <div class="card subs-card">
+        <div class="subs-summary">
+          <div class="subs-summary__item"><span>Cash</span><strong id="subsCash" class="subs-summary__cash">0 €</strong></div>
+          <div class="subs-summary__item subs-summary__item--center"><span>À venir</span><strong id="subsUpcoming" class="subs-summary__upcoming">0 €</strong></div>
+          <div class="subs-summary__item subs-summary__item--end"><span>Revenu</span><strong id="subsIncome" class="subs-summary__income">0 €</strong></div>
+        </div>
+        <div class="subs-bar" id="subsBar" role="img"><span data-seg="cash"></span><span data-seg="upcoming"></span><span data-seg="spent"></span></div>
+        <div class="subs-legend" id="subsLegend"></div>
+        <div class="subs-cal" id="subsCal"></div>
+        <div class="subs-daydetail" id="subsDay" hidden></div>
+      </div>
+
+      <section class="section">
+        <header class="section__head">
+          <div><h2 class="section__title">Abonnements</h2><p class="card__sub" id="subsSub"></p></div>
+          <button type="button" class="link-btn" data-open-settings="recurring">Gérer</button>
+        </header>
+        <div class="card card--list" id="subsList"></div>
+      </section>
+
+      <section class="section" id="subsOthersSection" hidden>
+        <header class="section__head"><div><h2 class="section__title">Autres échéances</h2><p class="card__sub">Charges fixes et rentrées récurrentes du mois</p></div></header>
+        <div class="card card--list" id="subsOthers"></div>
       </section>
     </section>
   </main>
